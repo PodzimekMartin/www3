@@ -1,0 +1,12 @@
+resources:
+  - deployment.yml
+  - service.yml
+  - ingress.yml
+  - postgres.yml
+  - secret.example.yml
+
+configMapGenerator:
+  - name: course-reservations-config
+    literals:
+      - SPRING_PROFILES_ACTIVE=prod
+      - APP_SEED_DATA=false

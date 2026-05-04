@@ -1,0 +1,11 @@
+namespace: course-production
+nameSuffix: -production
+resources:
+  - ../base
+patches:
+  - path: patch-deployment.yml
+configMapGenerator:
+  - name: course-reservations-config
+    behavior: merge
+    literals:
+      - APP_ENVIRONMENT=production
