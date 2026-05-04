@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="cs">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Course Reservations</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="topbar">
+    <div>
+        <p class="eyebrow">Semestralni aplikace</p>
+        <h1>Sprava kurzu</h1>
+    </div>
+    <button id="refreshButton" class="icon-button" title="Obnovit data" aria-label="Obnovit data">↻</button>
+</header>
+
+<main class="layout">
+    <section class="panel">
+        <h2>Novy student</h2>
+        <form id="studentForm" class="stack">
+            <label>Jmeno <input name="name" required placeholder="Ada Lovelace"></label>
+            <label>E-mail <input name="email" required type="email" placeholder="ada@example.test"></label>
+            <button type="submit">Pridat studenta</button>
+        </form>
+    </section>
+
+    <section class="panel">
+        <h2>Novy kurz</h2>
+        <form id="courseForm" class="stack">
+            <label>Nazev <input name="title" required placeholder="DevOps pipeline prakticky"></label>
+            <label>Kapacita <input name="capacity" required type="number" min="1" value="2"></label>
+            <button type="submit">Vytvorit kurz</button>
+        </form>
+    </section>
+
+    <section class="panel wide">
+        <div class="section-head">
+            <h2>Kurzy</h2>
+            <p id="summary" class="muted"></p>
+        </div>
+        <div id="courses" class="courses"></div>
+    </section>
+
+    <section class="panel">
+        <h2>Studenti</h2>
+        <div id="students" class="students"></div>
+    </section>
+</main>
+
+<div id="toast" class="toast" role="status"></div>
+<script src="/app.js"></script>
+</body>
+</html>
