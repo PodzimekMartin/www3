@@ -33,7 +33,10 @@ class CourseEnrollmentAcceptanceTest {
 
         var afterCancel = courseService.cancelEnrollment(course.getId(), first.getId());
 
-        assertThat(secondEnrollment.getStatus()).isEqualTo(EnrollmentStatus.ENROLLED);
+        assertThat(afterCancel.getEnrollments())
+                .singleElement()
+                .extracting(enrollment -> enrollment.getStatus())
+                .isEqualTo(EnrollmentStatus.ENROLLED);
         assertThat(afterCancel.activeEnrollmentCount()).isEqualTo(1);
         assertThat(afterCancel.waitlistCount()).isZero();
     }
