@@ -15,7 +15,18 @@ Projekt kombinuje dve zadani:
 - zapisy studentu do kurzu
 - automaticka cekaci listina pri naplneni kapacity
 - automaticke posunuti prvniho cekatele po uvolneni mista
+- prihlaseni s rolemi admin/student
 - REST API a webovy frontend
+
+## Prihlaseni
+
+Po spusteni aplikace je nutne se prihlasit.
+
+- admin: `admin` / `admin123`
+- student: napr. `ada@example.test` / `student123`
+
+Admin muze vytvaret studenty, kurzy, terminy, publikovat kurzy, menit kapacitu a blokovat studenty.
+Student vidi publikovane kurzy, muze zapsat pouze sam sebe a vidi svoje zapisy.
 
 ## Business pravidla
 

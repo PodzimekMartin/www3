@@ -12,11 +12,33 @@
         <p class="eyebrow">Semestralni aplikace</p>
         <h1>Sprava kurzu</h1>
     </div>
-    <button id="refreshButton" class="icon-button" title="Obnovit data" aria-label="Obnovit data">↻</button>
+    <div class="topbar-actions">
+        <span id="userBadge" class="user-badge"></span>
+        <button id="logoutButton" class="secondary hidden" type="button">Odhlasit</button>
+        <button id="refreshButton" class="icon-button" title="Obnovit data" aria-label="Obnovit data">↻</button>
+    </div>
 </header>
 
-<main class="layout">
-    <section class="panel">
+<main>
+    <section id="loginPanel" class="panel login-panel">
+        <h2>Prihlaseni</h2>
+        <form id="loginForm" class="stack">
+            <label>Uzivatel nebo e-mail
+                <input name="username" required placeholder="admin nebo ada@example.test">
+            </label>
+            <label>Heslo
+                <input name="password" required type="password" placeholder="admin123 / student123">
+            </label>
+            <button type="submit">Prihlasit</button>
+        </form>
+        <div class="credentials">
+            <span>Admin: <strong>admin</strong> / <strong>admin123</strong></span>
+            <span>Student: <strong>ada@example.test</strong> / <strong>student123</strong></span>
+        </div>
+    </section>
+
+    <div id="appContent" class="layout hidden">
+    <section class="panel admin-only">
         <h2>Novy student</h2>
         <form id="studentForm" class="stack">
             <label>Jmeno <input name="name" required placeholder="Ada Lovelace"></label>
@@ -25,11 +47,18 @@
         </form>
     </section>
 
-    <section class="panel">
+    <section class="panel admin-only">
         <h2>Novy kurz</h2>
         <form id="courseForm" class="stack">
             <label>Nazev <input name="title" required placeholder="DevOps pipeline prakticky"></label>
             <label>Kapacita <input name="capacity" required type="number" min="1" value="2"></label>
+            <div>
+                <div class="section-head">
+                    <h3>Terminy kurzu</h3>
+                    <button id="addCourseSessionButton" class="secondary" type="button">Pridat termin</button>
+                </div>
+                <div id="courseSessionRows" class="session-editor"></div>
+            </div>
             <button type="submit">Vytvorit kurz</button>
         </form>
     </section>
@@ -42,10 +71,11 @@
         <div id="courses" class="courses"></div>
     </section>
 
-    <section class="panel">
+    <section class="panel admin-only">
         <h2>Studenti</h2>
         <div id="students" class="students"></div>
     </section>
+    </div>
 </main>
 
 <div id="toast" class="toast" role="status"></div>

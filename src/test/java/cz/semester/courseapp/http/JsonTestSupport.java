@@ -18,4 +18,13 @@ final class JsonTestSupport {
             throw new IllegalArgumentException("Cannot read id from JSON: " + json, exception);
         }
     }
+
+    static String tokenFrom(String json) {
+        try {
+            JsonNode node = OBJECT_MAPPER.readTree(json);
+            return node.get("token").asText();
+        } catch (Exception exception) {
+            throw new IllegalArgumentException("Cannot read token from JSON: " + json, exception);
+        }
+    }
 }
