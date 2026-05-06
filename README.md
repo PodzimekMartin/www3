@@ -46,6 +46,8 @@ mvn spring-boot:run
 
 Frontend: `http://localhost:8080`
 
+Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+
 ## Testy a coverage
 
 ```bash
