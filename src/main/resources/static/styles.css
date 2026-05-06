@@ -74,8 +74,9 @@ h3 {
 .layout {
     display: grid;
     gap: 18px;
-    grid-template-columns: minmax(240px, 0.7fr) minmax(240px, 0.7fr) minmax(340px, 1.6fr);
+    grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);
     padding: 22px clamp(18px, 4vw, 42px);
+    align-items: start;
 }
 
 .hidden {
@@ -101,11 +102,26 @@ h3 {
     background: var(--panel);
     border: 1px solid var(--line);
     border-radius: 8px;
+    min-width: 0;
     padding: 18px;
 }
 
-.wide {
-    grid-column: span 2;
+.student-panel,
+.course-form-panel {
+    grid-column: 1;
+}
+
+.course-list-panel,
+.students-panel {
+    grid-column: 2;
+}
+
+.layout.student-mode {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.layout.student-mode .course-list-panel {
+    grid-column: 1;
 }
 
 .stack {
@@ -127,6 +143,7 @@ select {
     border-radius: 6px;
     color: var(--ink);
     font: inherit;
+    min-width: 0;
     min-height: 40px;
     padding: 8px 10px;
     width: 100%;
@@ -140,6 +157,7 @@ button {
     cursor: pointer;
     font: inherit;
     font-weight: 700;
+    min-width: 0;
     min-height: 40px;
     padding: 9px 12px;
 }
@@ -167,6 +185,7 @@ button.danger {
     display: flex;
     gap: 12px;
     justify-content: space-between;
+    flex-wrap: wrap;
 }
 
 .muted {
@@ -247,11 +266,16 @@ button.danger {
     align-items: end;
     display: grid;
     gap: 8px;
-    grid-template-columns: minmax(130px, 1fr) minmax(95px, 0.6fr) minmax(95px, 0.6fr) auto;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr) minmax(0, 0.8fr);
+}
+
+.session-row button {
+    grid-column: 1 / -1;
 }
 
 .session-inline {
     border-top: 1px solid var(--line);
+    grid-template-columns: minmax(130px, 1fr) minmax(90px, 0.7fr) minmax(90px, 0.7fr) auto;
     margin-top: 12px;
     padding-top: 12px;
 }
@@ -325,8 +349,11 @@ button.danger {
         grid-template-columns: 1fr;
     }
 
-    .wide {
-        grid-column: span 1;
+    .student-panel,
+    .course-form-panel,
+    .course-list-panel,
+    .students-panel {
+        grid-column: 1;
     }
 
     .grid-actions {

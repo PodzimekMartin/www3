@@ -38,7 +38,7 @@
     </section>
 
     <div id="appContent" class="layout hidden">
-    <section class="panel admin-only">
+    <section class="panel admin-only student-panel">
         <h2>Novy student</h2>
         <form id="studentForm" class="stack">
             <label>Jmeno <input name="name" required placeholder="Ada Lovelace"></label>
@@ -47,7 +47,7 @@
         </form>
     </section>
 
-    <section class="panel admin-only">
+    <section class="panel admin-only course-form-panel">
         <h2>Novy kurz</h2>
         <form id="courseForm" class="stack">
             <label>Nazev <input name="title" required placeholder="DevOps pipeline prakticky"></label>
@@ -63,7 +63,7 @@
         </form>
     </section>
 
-    <section class="panel wide">
+    <section class="panel course-list-panel">
         <div class="section-head">
             <h2>Kurzy</h2>
             <p id="summary" class="muted"></p>
@@ -71,7 +71,7 @@
         <div id="courses" class="courses"></div>
     </section>
 
-    <section class="panel admin-only">
+    <section class="panel admin-only students-panel">
         <h2>Studenti</h2>
         <div id="students" class="students"></div>
     </section>

@@ -38,7 +38,10 @@ const loadState = async () => {
 const render = () => {
   const signedIn = Boolean(state.session);
   document.querySelector("#loginPanel").classList.toggle("hidden", signedIn);
-  document.querySelector("#appContent").classList.toggle("hidden", !signedIn);
+  const appContent = document.querySelector("#appContent");
+  appContent.classList.toggle("hidden", !signedIn);
+  appContent.classList.toggle("admin-mode", state.session?.role === "ADMIN");
+  appContent.classList.toggle("student-mode", state.session?.role === "STUDENT");
   document.querySelector("#logoutButton").classList.toggle("hidden", !signedIn);
   document.querySelector("#refreshButton").classList.toggle("hidden", !signedIn);
   document.querySelector("#userBadge").textContent = signedIn
