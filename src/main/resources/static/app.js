@@ -295,17 +295,22 @@ document.querySelector("#courseForm").addEventListener("submit", async (event) =
       }
       payload.instructorId = Number(form.get("instructorId"));
     }
+    const sessions = sessionsFromForm(document.querySelector("#courseSessionRows"));
+    if (sessions.length === 0) {
+      throw new Error("Pridej ke kurzu alespon jeden termin.");
+    }
     const course = await api("/api/courses", {
       method: "POST",
       body: JSON.stringify(payload),
     });
-    for (const session of sessionsFromForm(document.querySelector("#courseSessionRows"))) {
+    for (const session of sessions) {
       await api(`/api/courses/${course.id}/sessions`, {
         method: "POST",
         body: JSON.stringify(session),
       });
     }
-  }, "Kurz vytvoren.");
+    await api(`/api/courses/${course.id}/publish`, { method: "POST" });
+  }, "Kurz vytvoren a publikovan.");
   event.currentTarget.reset();
   resetCourseSessionRows();
 });
