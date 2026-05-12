@@ -47,13 +47,31 @@ public class CourseController {
         return StudentResponse.from(courseService.createStudent(request.name(), request.email()));
     }
 
+    @PostMapping("/instructors")
+    @ResponseStatus(HttpStatus.CREATED)
+    public InstructorResponse createInstructor(
+            @RequestHeader("X-Auth-Token") String token,
+            @Valid @RequestBody CreateInstructorRequest request) {
+        authSessionService.requireAdmin(token);
+        return InstructorResponse.from(courseService.createInstructor(request.name(), request.email()));
+    }
+
     @PostMapping("/courses")
     @ResponseStatus(HttpStatus.CREATED)
     public CourseResponse createCourse(
             @RequestHeader("X-Auth-Token") String token,
             @Valid @RequestBody CreateCourseRequest request) {
-        authSessionService.requireAdmin(token);
-        return CourseResponse.from(courseService.createCourse(request.title(), request.capacity()));
+        UserSession session = authSessionService.require(token);
+        Long instructorId = session.isInstructor() ? session.instructorId() : request.instructorId();
+        if (!session.isAdmin() && !session.isInstructor()) {
+            authSessionService.requireAdmin(token);
+        }
+        if (session.isAdmin() && instructorId == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Admin musi ke kurzu priradit vyucujiciho.");
+        }
+        return CourseResponse.from(courseService.createCourse(request.title(), request.capacity(), instructorId));
     }
 
     @PostMapping("/courses/{id}/sessions")
@@ -61,7 +79,7 @@ public class CourseController {
             @RequestHeader("X-Auth-Token") String token,
             @PathVariable Long id,
             @Valid @RequestBody AddSessionRequest request) {
-        authSessionService.requireAdmin(token);
+        authSessionService.requireCourseManager(token, id);
         return CourseResponse.from(courseService.addSession(id, request.startsAt(), request.endsAt()));
     }
 
@@ -69,7 +87,7 @@ public class CourseController {
     public CourseResponse publish(
             @RequestHeader("X-Auth-Token") String token,
             @PathVariable Long id) {
-        authSessionService.requireAdmin(token);
+        authSessionService.requireCourseManager(token, id);
         return CourseResponse.from(courseService.publishCourse(id));
     }
 
@@ -89,7 +107,7 @@ public class CourseController {
             @PathVariable Long courseId,
             @PathVariable Long studentId) {
         UserSession session = authSessionService.require(token);
-        authSessionService.requireStudentSelf(session, studentId);
+        authSessionService.requireEnrollmentManagerOrStudentSelf(session, courseId, studentId);
         return CourseResponse.from(courseService.cancelEnrollment(courseId, studentId));
     }
 
@@ -98,7 +116,7 @@ public class CourseController {
             @RequestHeader("X-Auth-Token") String token,
             @PathVariable Long id,
             @Valid @RequestBody ChangeCapacityRequest request) {
-        authSessionService.requireAdmin(token);
+        authSessionService.requireCourseManager(token, id);
         return CourseResponse.from(courseService.changeCapacity(id, request.capacity()));
     }
 

@@ -8,6 +8,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -31,6 +32,9 @@ public class Course {
     @Enumerated(EnumType.STRING)
     private CourseStatus status = CourseStatus.DRAFT;
 
+    @ManyToOne
+    private Instructor instructor;
+
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private final List<CourseSession> sessions = new ArrayList<>();
 
@@ -43,6 +47,11 @@ public class Course {
     public Course(String title, int capacity) {
         this.title = title;
         this.capacity = capacity;
+    }
+
+    public Course(String title, int capacity, Instructor instructor) {
+        this(title, capacity);
+        this.instructor = instructor;
     }
 
     public Long getId() {
@@ -59,6 +68,14 @@ public class Course {
 
     public CourseStatus getStatus() {
         return status;
+    }
+
+    public Instructor getInstructor() {
+        return instructor;
+    }
+
+    public void assignInstructor(Instructor instructor) {
+        this.instructor = instructor;
     }
 
     public List<CourseSession> getSessions() {

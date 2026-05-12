@@ -13,22 +13,38 @@ public class SeedData implements ApplicationRunner {
 
     private final CourseService courseService;
     private final StudentRepository studentRepository;
+    private final InstructorRepository instructorRepository;
+    private final CourseRepository courseRepository;
 
-    public SeedData(CourseService courseService, StudentRepository studentRepository) {
+    public SeedData(
+            CourseService courseService,
+            StudentRepository studentRepository,
+            InstructorRepository instructorRepository,
+            CourseRepository courseRepository) {
         this.courseService = courseService;
         this.studentRepository = studentRepository;
+        this.instructorRepository = instructorRepository;
+        this.courseRepository = courseRepository;
     }
 
     @Override
     public void run(ApplicationArguments args) {
+        var teacher = instructorRepository.findByEmailIgnoreCase("teacher@example.test")
+                .orElseGet(() -> courseService.createInstructor("Jan Novak", "teacher@example.test"));
         if (studentRepository.count() > 0) {
+            courseRepository.findAll().stream()
+                    .filter(course -> course.getInstructor() == null)
+                    .forEach(course -> {
+                        course.assignInstructor(teacher);
+                        courseRepository.save(course);
+                    });
             return;
         }
 
         var ada = courseService.createStudent("Ada Lovelace", "ada@example.test");
         var grace = courseService.createStudent("Grace Hopper", "grace@example.test");
         var linus = courseService.createStudent("Linus Torvalds", "linus@example.test");
-        var course = courseService.createCourse("DevOps pipeline prakticky", 2);
+        var course = courseService.createCourse("DevOps pipeline prakticky", 2, teacher.getId());
 
         courseService.addSession(
                 course.getId(),

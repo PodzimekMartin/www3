@@ -9,13 +9,13 @@ Projekt kombinuje dve zadani:
 
 ## Funkce
 
-- sprava studentu a jejich blokace
-- sprava kurzu, kapacity a publikace
+- sprava studentu, vyucujicich a blokace studentu
+- sprava kurzu, kapacity, publikace a prirazeni vyucujiciho
 - pridavani terminu kurzu
 - zapisy studentu do kurzu
 - automaticka cekaci listina pri naplneni kapacity
 - automaticke posunuti prvniho cekatele po uvolneni mista
-- prihlaseni s rolemi admin/student
+- prihlaseni s rolemi admin/vyucujici/student
 - REST API a webovy frontend
 
 ## Prihlaseni
@@ -23,9 +23,12 @@ Projekt kombinuje dve zadani:
 Po spusteni aplikace je nutne se prihlasit.
 
 - admin: `admin` / `admin123`
+- vyucujici: napr. `teacher@example.test` / `teacher123`
 - student: napr. `ada@example.test` / `student123`
 
-Admin muze vytvaret studenty, kurzy, terminy, publikovat kurzy, menit kapacitu a blokovat studenty.
+Admin muze vytvaret studenty, vyucujici, kurzy, terminy, publikovat kurzy, menit kapacitu a blokovat studenty.
+Pri vytvoreni kurzu admin prirazuje vyucujiciho.
+Vyucujici muze vytvaret a spravovat svoje kurzy.
 Student vidi publikovane kurzy, muze zapsat pouze sam sebe a vidi svoje zapisy.
 
 ## Business pravidla

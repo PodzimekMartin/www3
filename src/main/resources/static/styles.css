@@ -107,20 +107,25 @@ h3 {
 }
 
 .student-panel,
+.instructor-panel,
 .course-form-panel {
     grid-column: 1;
 }
 
 .course-list-panel,
-.students-panel {
+.students-panel,
+.instructors-panel {
     grid-column: 2;
 }
 
-.layout.student-mode {
+.layout.student-mode,
+.layout.instructor-mode {
     grid-template-columns: minmax(0, 1fr);
 }
 
-.layout.student-mode .course-list-panel {
+.layout.student-mode .course-list-panel,
+.layout.instructor-mode .course-form-panel,
+.layout.instructor-mode .course-list-panel {
     grid-column: 1;
 }
 
@@ -350,9 +355,11 @@ button.danger {
     }
 
     .student-panel,
+    .instructor-panel,
     .course-form-panel,
     .course-list-panel,
-    .students-panel {
+    .students-panel,
+    .instructors-panel {
         grid-column: 1;
     }
 

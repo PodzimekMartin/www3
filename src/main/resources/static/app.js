@@ -1,5 +1,6 @@
 const state = {
   students: [],
+  instructors: [],
   courses: [],
   session: JSON.parse(window.localStorage.getItem("courseSession") || "null"),
 };
@@ -31,6 +32,7 @@ const loadState = async () => {
   }
   const nextState = await api("/api/state");
   state.students = nextState.students;
+  state.instructors = nextState.instructors;
   state.courses = nextState.courses;
   render();
 };
@@ -42,22 +44,29 @@ const render = () => {
   appContent.classList.toggle("hidden", !signedIn);
   appContent.classList.toggle("admin-mode", state.session?.role === "ADMIN");
   appContent.classList.toggle("student-mode", state.session?.role === "STUDENT");
+  appContent.classList.toggle("instructor-mode", state.session?.role === "INSTRUCTOR");
   document.querySelector("#logoutButton").classList.toggle("hidden", !signedIn);
   document.querySelector("#refreshButton").classList.toggle("hidden", !signedIn);
   document.querySelector("#userBadge").textContent = signedIn
-    ? `${state.session.displayName} (${state.session.role === "ADMIN" ? "admin" : "student"})`
+    ? `${state.session.displayName} (${roleLabel(state.session.role)})`
     : "";
 
   document.querySelectorAll(".admin-only").forEach((element) => {
     element.classList.toggle("hidden", state.session?.role !== "ADMIN");
   });
+  document.querySelectorAll(".course-manager-only").forEach((element) => {
+    element.classList.toggle("hidden", !["ADMIN", "INSTRUCTOR"].includes(state.session?.role));
+  });
+  document.querySelector("#courseInstructorField").classList.toggle("hidden", state.session?.role !== "ADMIN");
 
   if (!signedIn) {
     return;
   }
   document.querySelector("#summary").textContent =
-    `${state.courses.length} kurzu, ${state.students.length} studentu`;
+    `${state.courses.length} kurzu, ${state.students.length} studentu, ${state.instructors.length} vyucujicich`;
+  renderInstructorOptions();
   renderStudents();
+  renderInstructors();
   renderCourses();
 };
 
@@ -80,6 +89,32 @@ const renderStudents = () => {
   });
 };
 
+const renderInstructors = () => {
+  const container = document.querySelector("#instructors");
+  container.innerHTML = "";
+  state.instructors.forEach((instructor) => {
+    const row = document.createElement("div");
+    row.className = "student";
+    row.innerHTML = `
+      <div>
+        <strong>${escapeHtml(instructor.name)}</strong>
+        <p class="muted">${escapeHtml(instructor.email)}</p>
+      </div>
+      <span class="status">Vyucujici</span>
+    `;
+    container.append(row);
+  });
+};
+
+const renderInstructorOptions = () => {
+  const select = document.querySelector("#courseInstructorSelect");
+  select.innerHTML = state.instructors
+    .map((instructor) => `
+      <option value="${instructor.id}">${escapeHtml(instructor.name)} (${escapeHtml(instructor.email)})</option>
+    `)
+    .join("");
+};
+
 const renderCourses = () => {
   const container = document.querySelector("#courses");
   container.innerHTML = "";
@@ -94,13 +129,16 @@ const renderCourses = () => {
             ${course.enrolledCount}/${course.capacity} zapsano,
             ${course.waitlistCount} na cekaci listine
           </p>
+          <p class="muted">Vyucujici: ${escapeHtml(course.instructorName || "Neprirazeno")}</p>
         </div>
         <span class="badge ${course.status === "PUBLISHED" ? "published" : "draft"}">
           ${course.status === "PUBLISHED" ? "Publikovano" : "Koncept"}
         </span>
       </div>
       ${renderSessions(course.sessions)}
-      ${state.session.role === "ADMIN" ? renderAdminCourseActions(course) : renderStudentCourseActions(course)}
+      ${["ADMIN", "INSTRUCTOR"].includes(state.session.role)
+        ? renderCourseManagerActions(course)
+        : renderStudentCourseActions(course)}
       <div>
         ${course.enrollments.map((enrollment) => renderEnrollment(course, enrollment)).join("")}
       </div>
@@ -122,7 +160,7 @@ const renderSessions = (sessions) => {
   `;
 };
 
-const renderAdminCourseActions = (course) => `
+const renderCourseManagerActions = (course) => `
   <div class="grid-actions admin-actions">
     <button class="secondary" data-publish="${course.id}">Publikovat</button>
     <input data-capacity="${course.id}" type="number" min="1" value="${course.capacity}">
@@ -156,7 +194,7 @@ const renderStudentCourseActions = (course) => {
 };
 
 const renderEnrollment = (course, enrollment) => {
-  const canCancel = state.session.role === "ADMIN";
+  const canCancel = ["ADMIN", "INSTRUCTOR"].includes(state.session.role);
   const isCurrentStudent = enrollment.studentId === state.session.studentId;
   if (state.session.role === "STUDENT" && !isCurrentStudent) {
     return "";
@@ -174,6 +212,12 @@ const renderEnrollment = (course, enrollment) => {
 
 const ownEnrollmentFor = (course) =>
   course.enrollments.find((enrollment) => enrollment.studentId === state.session.studentId);
+
+const roleLabel = (role) => ({
+  ADMIN: "admin",
+  INSTRUCTOR: "vyucujici",
+  STUDENT: "student",
+}[role] || role.toLowerCase());
 
 const escapeHtml = (value) => String(value)
   .replaceAll("&", "&amp;")
@@ -198,6 +242,7 @@ loginForm.addEventListener("submit", async (event) => {
 document.querySelector("#logoutButton").addEventListener("click", () => {
   state.session = null;
   state.students = [];
+  state.instructors = [];
   state.courses = [];
   window.localStorage.removeItem("courseSession");
   render();
@@ -213,13 +258,27 @@ document.querySelector("#studentForm").addEventListener("submit", async (event) 
   event.currentTarget.reset();
 });
 
+document.querySelector("#instructorForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  await handle(() => api("/api/instructors", {
+    method: "POST",
+    body: JSON.stringify({ name: form.get("name"), email: form.get("email") }),
+  }), "Vyucujici vytvoren.");
+  event.currentTarget.reset();
+});
+
 document.querySelector("#courseForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
   await handle(async () => {
+    const payload = { title: form.get("title"), capacity: Number(form.get("capacity")) };
+    if (state.session.role === "ADMIN") {
+      payload.instructorId = Number(form.get("instructorId"));
+    }
     const course = await api("/api/courses", {
       method: "POST",
-      body: JSON.stringify({ title: form.get("title"), capacity: Number(form.get("capacity")) }),
+      body: JSON.stringify(payload),
     });
     for (const session of sessionsFromForm(document.querySelector("#courseSessionRows"))) {
       await api(`/api/courses/${course.id}/sessions`, {

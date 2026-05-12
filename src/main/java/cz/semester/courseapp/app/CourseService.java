@@ -3,8 +3,10 @@ package cz.semester.courseapp.app;
 import cz.semester.courseapp.domain.Course;
 import cz.semester.courseapp.domain.CourseSession;
 import cz.semester.courseapp.domain.Enrollment;
+import cz.semester.courseapp.domain.Instructor;
 import cz.semester.courseapp.domain.Student;
 import cz.semester.courseapp.infra.CourseRepository;
+import cz.semester.courseapp.infra.InstructorRepository;
 import cz.semester.courseapp.infra.StudentRepository;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -17,14 +19,17 @@ public class CourseService {
 
     private final CourseRepository courseRepository;
     private final StudentRepository studentRepository;
+    private final InstructorRepository instructorRepository;
     private final NotificationGateway notificationGateway;
 
     public CourseService(
             CourseRepository courseRepository,
             StudentRepository studentRepository,
+            InstructorRepository instructorRepository,
             NotificationGateway notificationGateway) {
         this.courseRepository = courseRepository;
         this.studentRepository = studentRepository;
+        this.instructorRepository = instructorRepository;
         this.notificationGateway = notificationGateway;
     }
 
@@ -35,8 +40,19 @@ public class CourseService {
         return studentRepository.save(new Student(name, email));
     }
 
+    public Instructor createInstructor(String name, String email) {
+        if (instructorRepository.existsByEmailIgnoreCase(email)) {
+            throw new NotFoundOrConflictException("Vyucujici s timto e-mailem uz existuje.");
+        }
+        return instructorRepository.save(new Instructor(name, email));
+    }
+
     public Course createCourse(String title, int capacity) {
         return courseRepository.save(new Course(title, capacity));
+    }
+
+    public Course createCourse(String title, int capacity, Long instructorId) {
+        return courseRepository.save(new Course(title, capacity, instructor(instructorId)));
     }
 
     public Course addSession(Long courseId, LocalDateTime startsAt, LocalDateTime endsAt) {
@@ -79,7 +95,10 @@ public class CourseService {
 
     @Transactional(readOnly = true)
     public ApplicationState state() {
-        return new ApplicationState(studentRepository.findAll(), courseRepository.findAll());
+        return new ApplicationState(
+                studentRepository.findAll(),
+                instructorRepository.findAll(),
+                courseRepository.findAll());
     }
 
     private Course course(Long id) {
@@ -92,6 +111,11 @@ public class CourseService {
                 .orElseThrow(() -> new NotFoundOrConflictException("Student nebyl nalezen."));
     }
 
-    public record ApplicationState(List<Student> students, List<Course> courses) {
+    private Instructor instructor(Long id) {
+        return instructorRepository.findById(id)
+                .orElseThrow(() -> new NotFoundOrConflictException("Vyucujici nebyl nalezen."));
+    }
+
+    public record ApplicationState(List<Student> students, List<Instructor> instructors, List<Course> courses) {
     }
 }

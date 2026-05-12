@@ -2,8 +2,10 @@ package cz.semester.courseapp.app;
 
 import cz.semester.courseapp.domain.Course;
 import cz.semester.courseapp.domain.CourseStatus;
+import cz.semester.courseapp.domain.Instructor;
 import cz.semester.courseapp.domain.Student;
 import cz.semester.courseapp.infra.CourseRepository;
+import cz.semester.courseapp.infra.InstructorRepository;
 import cz.semester.courseapp.infra.StudentRepository;
 import java.util.List;
 import java.util.Locale;
@@ -20,28 +22,41 @@ public class AuthSessionService {
     private static final String ADMIN_USERNAME = "admin";
     private static final String ADMIN_PASSWORD = "admin123";
     private static final String STUDENT_PASSWORD = "student123";
+    private static final String INSTRUCTOR_PASSWORD = "teacher123";
 
     private final StudentRepository studentRepository;
+    private final InstructorRepository instructorRepository;
     private final CourseRepository courseRepository;
     private final ConcurrentMap<String, UserSession> sessions = new ConcurrentHashMap<>();
 
-    public AuthSessionService(StudentRepository studentRepository, CourseRepository courseRepository) {
+    public AuthSessionService(
+            StudentRepository studentRepository,
+            InstructorRepository instructorRepository,
+            CourseRepository courseRepository) {
         this.studentRepository = studentRepository;
+        this.instructorRepository = instructorRepository;
         this.courseRepository = courseRepository;
     }
 
     public UserSession login(String username, String password) {
         String normalizedUsername = username == null ? "" : username.trim().toLowerCase(Locale.ROOT);
         if (ADMIN_USERNAME.equals(normalizedUsername) && ADMIN_PASSWORD.equals(password)) {
-            return remember(UserSession.Role.ADMIN, null, "Administrator");
+            return remember(UserSession.Role.ADMIN, null, null, "Administrator");
         }
 
-        Student student = studentRepository.findByEmailIgnoreCase(normalizedUsername)
-                .orElseThrow(() -> unauthorized("Neplatne prihlasovaci udaje."));
-        if (!STUDENT_PASSWORD.equals(password)) {
-            throw unauthorized("Neplatne prihlasovaci udaje.");
+        if (INSTRUCTOR_PASSWORD.equals(password)) {
+            Instructor instructor = instructorRepository.findByEmailIgnoreCase(normalizedUsername)
+                    .orElseThrow(() -> unauthorized("Neplatne prihlasovaci udaje."));
+            return remember(UserSession.Role.INSTRUCTOR, null, instructor.getId(), instructor.getName());
         }
-        return remember(UserSession.Role.STUDENT, student.getId(), student.getName());
+
+        if (STUDENT_PASSWORD.equals(password)) {
+            Student student = studentRepository.findByEmailIgnoreCase(normalizedUsername)
+                    .orElseThrow(() -> unauthorized("Neplatne prihlasovaci udaje."));
+            return remember(UserSession.Role.STUDENT, student.getId(), null, student.getName());
+        }
+
+        throw unauthorized("Neplatne prihlasovaci udaje.");
     }
 
     public UserSession require(String token) {
@@ -72,9 +87,40 @@ public class AuthSessionService {
         }
     }
 
+    public UserSession requireCourseManager(String token, Long courseId) {
+        UserSession session = require(token);
+        if (session.isAdmin()) {
+            return session;
+        }
+        if (session.isInstructor() && isInstructorCourse(session, courseId)) {
+            return session;
+        }
+        throw forbidden("Tato akce je povolena pouze administratorovi nebo vyucujicimu kurzu.");
+    }
+
+    public void requireEnrollmentManagerOrStudentSelf(UserSession session, Long courseId, Long studentId) {
+        if (session.isAdmin() || (session.isInstructor() && isInstructorCourse(session, courseId))) {
+            return;
+        }
+        requireStudentSelf(session, studentId);
+    }
+
     public CourseService.ApplicationState stateFor(UserSession session) {
         if (session.isAdmin()) {
-            return new CourseService.ApplicationState(studentRepository.findAll(), courseRepository.findAll());
+            return new CourseService.ApplicationState(
+                    studentRepository.findAll(),
+                    instructorRepository.findAll(),
+                    courseRepository.findAll());
+        }
+
+        if (session.isInstructor()) {
+            Instructor instructor = instructorRepository.findById(session.instructorId())
+                    .orElseThrow(() -> unauthorized("Ucet vyucujiciho uz neexistuje."));
+            List<Course> visibleCourses = courseRepository.findAll().stream()
+                    .filter(course -> course.getInstructor() != null
+                            && course.getInstructor().getId().equals(instructor.getId()))
+                    .toList();
+            return new CourseService.ApplicationState(List.of(), List.of(instructor), visibleCourses);
         }
 
         Student student = studentRepository.findById(session.studentId())
@@ -82,12 +128,20 @@ public class AuthSessionService {
         List<Course> visibleCourses = courseRepository.findAll().stream()
                 .filter(course -> course.getStatus() == CourseStatus.PUBLISHED || course.hasStudent(student.getId()))
                 .toList();
-        return new CourseService.ApplicationState(List.of(student), visibleCourses);
+        return new CourseService.ApplicationState(List.of(student), List.of(), visibleCourses);
     }
 
-    private UserSession remember(UserSession.Role role, Long studentId, String displayName) {
+    private boolean isInstructorCourse(UserSession session, Long courseId) {
+        return courseRepository.findById(courseId)
+                .map(Course::getInstructor)
+                .map(Instructor::getId)
+                .filter(session.instructorId()::equals)
+                .isPresent();
+    }
+
+    private UserSession remember(UserSession.Role role, Long studentId, Long instructorId, String displayName) {
         String token = UUID.randomUUID().toString();
-        UserSession session = new UserSession(token, role, studentId, displayName);
+        UserSession session = new UserSession(token, role, studentId, instructorId, displayName);
         sessions.put(token, session);
         return session;
     }

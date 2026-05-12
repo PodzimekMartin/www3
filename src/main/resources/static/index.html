@@ -24,15 +24,16 @@
         <h2>Prihlaseni</h2>
         <form id="loginForm" class="stack">
             <label>Uzivatel nebo e-mail
-                <input name="username" required placeholder="admin nebo ada@example.test">
+                <input name="username" required placeholder="admin, teacher@example.test nebo ada@example.test">
             </label>
             <label>Heslo
-                <input name="password" required type="password" placeholder="admin123 / student123">
+                <input name="password" required type="password" placeholder="admin123 / teacher123 / student123">
             </label>
             <button type="submit">Prihlasit</button>
         </form>
         <div class="credentials">
             <span>Admin: <strong>admin</strong> / <strong>admin123</strong></span>
+            <span>Vyucujici: <strong>teacher@example.test</strong> / <strong>teacher123</strong></span>
             <span>Student: <strong>ada@example.test</strong> / <strong>student123</strong></span>
         </div>
     </section>
@@ -47,10 +48,22 @@
         </form>
     </section>
 
-    <section class="panel admin-only course-form-panel">
+    <section class="panel admin-only instructor-panel">
+        <h2>Novy vyucujici</h2>
+        <form id="instructorForm" class="stack">
+            <label>Jmeno <input name="name" required placeholder="Jan Novak"></label>
+            <label>E-mail <input name="email" required type="email" placeholder="teacher@example.test"></label>
+            <button type="submit">Pridat vyucujiciho</button>
+        </form>
+    </section>
+
+    <section class="panel course-manager-only course-form-panel">
         <h2>Novy kurz</h2>
         <form id="courseForm" class="stack">
             <label>Nazev <input name="title" required placeholder="DevOps pipeline prakticky"></label>
+            <label id="courseInstructorField">Vyucujici
+                <select id="courseInstructorSelect" name="instructorId" required></select>
+            </label>
             <label>Kapacita <input name="capacity" required type="number" min="1" value="2"></label>
             <div>
                 <div class="section-head">
@@ -74,6 +87,11 @@
     <section class="panel admin-only students-panel">
         <h2>Studenti</h2>
         <div id="students" class="students"></div>
+    </section>
+
+    <section class="panel admin-only instructors-panel">
+        <h2>Vyucujici</h2>
+        <div id="instructors" class="students"></div>
     </section>
     </div>
 </main>

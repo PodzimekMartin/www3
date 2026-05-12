@@ -85,6 +85,47 @@ class CourseControllerIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Tato akce je povolena pouze administratorovi."));
     }
 
+    @Test
+    void instructorCanCreateAndManageOwnCourse() throws Exception {
+        long instructor = createInstructor("Teacher One", "teacher-one@example.test");
+        String teacherToken = loginInstructor("teacher-one@example.test");
+
+        String response = mockMvc.perform(post("/api/courses")
+                        .header(AUTH_HEADER, teacherToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title": "Teacher Course", "capacity": 2}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.instructorId").value(instructor))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        long course = JsonTestSupport.idFrom(response);
+
+        mockMvc.perform(post("/api/courses/{id}/sessions", course)
+                        .header(AUTH_HEADER, teacherToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"startsAt": "2026-05-04T10:00:00", "endsAt": "2026-05-04T12:00:00"}
+                                """))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void adminAssignsInstructorWhenCreatingCourse() throws Exception {
+        long instructor = createInstructor("Teacher Two", "teacher-two@example.test");
+
+        mockMvc.perform(post("/api/courses")
+                        .header(AUTH_HEADER, adminToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title": "Assigned Course", "capacity": 3, "instructorId": %d}
+                                """.formatted(instructor)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.instructorName").value("Teacher Two"));
+    }
+
     private long createStudent(String name, String email) throws Exception {
         String location = mockMvc.perform(post("/api/students")
                         .header(AUTH_HEADER, adminToken())
@@ -99,13 +140,28 @@ class CourseControllerIntegrationTest {
         return JsonTestSupport.idFrom(location);
     }
 
+    private long createInstructor(String name, String email) throws Exception {
+        String response = mockMvc.perform(post("/api/instructors")
+                        .header(AUTH_HEADER, adminToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name": "%s", "email": "%s"}
+                                """.formatted(name, email)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        return JsonTestSupport.idFrom(response);
+    }
+
     private long createCourse(String title, int capacity) throws Exception {
+        long instructor = createInstructor("Default Teacher", "default-teacher@example.test");
         String response = mockMvc.perform(post("/api/courses")
                         .header(AUTH_HEADER, adminToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"title": "%s", "capacity": %d}
-                                """.formatted(title, capacity)))
+                                {"title": "%s", "capacity": %d, "instructorId": %d}
+                                """.formatted(title, capacity, instructor)))
                 .andExpect(status().isCreated())
                 .andReturn()
                 .getResponse()
@@ -146,6 +202,19 @@ class CourseControllerIntegrationTest {
                         .content("""
                                 {"username": "admin", "password": "admin123"}
                                 """))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        return JsonTestSupport.tokenFrom(response);
+    }
+
+    private String loginInstructor(String email) throws Exception {
+        String response = mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"username": "%s", "password": "teacher123"}
+                                """.formatted(email)))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
