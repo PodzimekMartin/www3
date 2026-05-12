@@ -146,7 +146,7 @@ const renderCourses = () => {
         </span>
       </div>
       ${renderSessions(course.sessions)}
-      ${["ADMIN", "INSTRUCTOR"].includes(state.session.role)
+      ${isCourseManager()
         ? renderCourseManagerActions(course)
         : renderStudentCourseActions(course)}
       <div>
@@ -186,6 +186,9 @@ const renderCourseManagerActions = (course) => `
 `;
 
 const renderStudentCourseActions = (course) => {
+  if (state.session.role !== "STUDENT") {
+    return "";
+  }
   const ownEnrollment = ownEnrollmentFor(course);
   if (ownEnrollment) {
     return `
@@ -223,6 +226,8 @@ const renderEnrollment = (course, enrollment) => {
 
 const ownEnrollmentFor = (course) =>
   course.enrollments.find((enrollment) => enrollment.studentId === state.session.studentId);
+
+const isCourseManager = () => ["ADMIN", "INSTRUCTOR"].includes(state.session?.role);
 
 const roleLabel = (role) => ({
   ADMIN: "admin",
@@ -285,6 +290,9 @@ document.querySelector("#courseForm").addEventListener("submit", async (event) =
   await handle(async () => {
     const payload = { title: form.get("title"), capacity: Number(form.get("capacity")) };
     if (state.session.role === "ADMIN") {
+      if (!form.get("instructorId")) {
+        throw new Error("Vyber vyucujiciho pro kurz.");
+      }
       payload.instructorId = Number(form.get("instructorId"));
     }
     const course = await api("/api/courses", {
