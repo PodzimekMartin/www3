@@ -127,6 +127,42 @@ h3 {
     color: #ffffff;
 }
 
+.overview-panel {
+    grid-column: 1 / -1;
+}
+
+.stats {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.stat-card {
+    background: #ffffff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    padding: 14px;
+}
+
+.stat-card span {
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.stat-card strong {
+    font-size: 1.7rem;
+}
+
+.stat-card p {
+    color: var(--muted);
+    font-size: 0.84rem;
+}
+
 .student-panel,
 .instructor-panel,
 .course-form-panel {
@@ -204,6 +240,11 @@ button {
     padding: 9px 12px;
 }
 
+button:disabled {
+    cursor: progress;
+    opacity: 0.68;
+}
+
 button.secondary {
     background: #edf4f7;
     color: var(--accent);
@@ -239,8 +280,16 @@ button.danger {
     align-items: end;
     display: grid;
     gap: 10px;
-    grid-template-columns: minmax(180px, 1fr) minmax(150px, 220px);
+    grid-template-columns: minmax(180px, 1fr) minmax(140px, 190px) minmax(140px, 190px);
     margin-top: 14px;
+}
+
+.students-panel .filters {
+    grid-template-columns: minmax(180px, 1fr) minmax(140px, 190px);
+}
+
+.instructors-panel .filters {
+    grid-template-columns: minmax(180px, 1fr);
 }
 
 .courses,
@@ -254,6 +303,20 @@ button.danger {
     border: 1px solid var(--line);
     border-radius: 8px;
     padding: 14px;
+}
+
+.empty-state {
+    background: #f8fafc;
+    border: 1px dashed #cbd5df;
+    border-radius: 8px;
+    color: var(--muted);
+    display: grid;
+    gap: 6px;
+    padding: 18px;
+}
+
+.empty-state strong {
+    color: var(--ink);
 }
 
 .course-title {
@@ -371,8 +434,73 @@ button.danger {
     padding: 10px 0;
 }
 
+.student.compact {
+    padding: 8px 0;
+}
+
 .student:last-child {
     border-bottom: 0;
+}
+
+.modal {
+    align-items: center;
+    background: rgba(15, 23, 42, 0.42);
+    display: flex;
+    inset: 0;
+    justify-content: center;
+    padding: 24px;
+    position: fixed;
+    z-index: 20;
+}
+
+.modal-card {
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.24);
+    max-height: calc(100vh - 48px);
+    max-width: 760px;
+    overflow: auto;
+    padding: 20px;
+    width: min(100%, 760px);
+}
+
+.confirm-card {
+    max-width: 440px;
+}
+
+.detail-body {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.detail-grid {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.detail-grid > div {
+    background: #f8fafc;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    display: grid;
+    gap: 4px;
+    padding: 12px;
+}
+
+.detail-label {
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 18px;
 }
 
 .toast {
@@ -405,11 +533,14 @@ button.danger {
     .course-list-panel,
     .students-panel,
     .instructors-panel,
-    .dashboard-tabs {
+    .dashboard-tabs,
+    .overview-panel {
         grid-column: 1;
     }
 
-    .dashboard-tabs {
+    .dashboard-tabs,
+    .stats,
+    .detail-grid {
         grid-template-columns: 1fr;
     }
 

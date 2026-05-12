@@ -6,10 +6,12 @@ const state = {
   filters: {
     courseSearch: "",
     courseStatus: "ALL",
+    courseCapacity: "ALL",
     studentSearch: "",
     studentStatus: "ALL",
     instructorSearch: "",
   },
+  pendingDeleteCourseId: null,
   session: JSON.parse(window.localStorage.getItem("courseSession") || "null"),
 };
 
@@ -71,6 +73,7 @@ const render = () => {
   if (!signedIn) {
     return;
   }
+  renderStats();
   renderInstructorOptions();
   renderStudents();
   renderInstructors();
@@ -100,13 +103,35 @@ const renderAdminDashboard = () => {
   });
 };
 
+const renderStats = () => {
+  const published = state.courses.filter((course) => course.status === "PUBLISHED").length;
+  const drafts = state.courses.filter((course) => course.status === "DRAFT").length;
+  const activeStudents = state.students.filter((student) => !student.blocked).length;
+  const blockedStudents = state.students.length - activeStudents;
+  const openSeats = state.courses.reduce((total, course) =>
+    total + Math.max(course.capacity - course.enrolledCount, 0), 0);
+  const cards = [
+    ["Kurzy", state.courses.length, `${published} publikovano, ${drafts} konceptu`],
+    ["Volna mista", openSeats, "Napric kurzy"],
+    ["Studenti", state.students.length, `${activeStudents} aktivni, ${blockedStudents} blokovani`],
+    ["Vyucujici", state.instructors.length, "Prirazeni ke kurzum"],
+  ];
+  document.querySelector("#stats").innerHTML = cards.map(([label, value, detail]) => `
+    <article class="stat-card">
+      <span>${label}</span>
+      <strong>${value}</strong>
+      <p>${detail}</p>
+    </article>
+  `).join("");
+};
+
 const renderStudents = () => {
   const container = document.querySelector("#students");
   container.innerHTML = "";
   const students = filteredStudents();
   document.querySelector("#studentResultCount").textContent = resultCount(students.length, state.students.length);
   if (students.length === 0) {
-    container.innerHTML = `<p class="muted">Zadny student neodpovida filtru.</p>`;
+    container.innerHTML = emptyState("Zadny student", "Zmen filtr nebo pridej noveho studenta vlevo.");
     return;
   }
   students.forEach((student) => {
@@ -131,7 +156,7 @@ const renderInstructors = () => {
   const instructors = filteredInstructors();
   document.querySelector("#instructorResultCount").textContent = resultCount(instructors.length, state.instructors.length);
   if (instructors.length === 0) {
-    container.innerHTML = `<p class="muted">Zadny vyucujici neodpovida filtru.</p>`;
+    container.innerHTML = emptyState("Zadny vyucujici", "Zmen filtr nebo zaloz noveho vyucujiciho vlevo.");
     return;
   }
   instructors.forEach((instructor) => {
@@ -173,7 +198,7 @@ const renderCourses = () => {
   const courses = filteredCourses();
   document.querySelector("#courseResultCount").textContent = resultCount(courses.length, state.courses.length);
   if (courses.length === 0) {
-    container.innerHTML = `<p class="muted">Zadny kurz neodpovida filtru.</p>`;
+    container.innerHTML = emptyState("Zadny kurz", "Zmen filtr nebo vytvor novy kurz s terminem.");
     return;
   }
   courses.forEach((course) => {
@@ -194,6 +219,7 @@ const renderCourses = () => {
         </span>
       </div>
       ${renderSessions(course.sessions)}
+      <button class="secondary spacing" data-view-course-detail="${course.id}">Detail kurzu</button>
       ${isCourseManager()
         ? renderCourseManagerActions(course)
         : renderStudentCourseActions(course)}
@@ -231,6 +257,43 @@ const renderCourseManagerActions = (course) => `
     <label>Do <input name="endsAt" required type="time" value="12:00"></label>
     <button class="secondary" type="submit">Pridat termin</button>
   </form>
+`;
+
+const renderCourseDetail = (course) => `
+  <div class="detail-grid">
+    <div>
+      <span class="detail-label">Vyucujici</span>
+      <strong>${escapeHtml(course.instructorName || "Neprirazeno")}</strong>
+    </div>
+    <div>
+      <span class="detail-label">Kapacita</span>
+      <strong>${course.enrolledCount}/${course.capacity} zapsano</strong>
+    </div>
+    <div>
+      <span class="detail-label">Cekaci listina</span>
+      <strong>${course.waitlistCount}</strong>
+    </div>
+    <div>
+      <span class="detail-label">Stav</span>
+      <strong>${course.status === "PUBLISHED" ? "Publikovano" : "Koncept"}</strong>
+    </div>
+  </div>
+  <h3 class="spacing">Terminy</h3>
+  ${course.sessions.length === 0
+    ? emptyState("Bez terminu", "Kurz zatim nema prirazeny zadny termin.")
+    : `<div class="sessions">${course.sessions.map((session) =>
+      `<span>${formatDateTime(session.startsAt)} - ${formatTime(session.endsAt)}</span>`).join("")}</div>`}
+  <h3 class="spacing">Zapsani studenti</h3>
+  ${course.enrollments.length === 0
+    ? emptyState("Bez zapisu", "Na kurz se zatim nikdo neprihlasil.")
+    : `<div class="students">${course.enrollments.map((enrollment) => `
+      <div class="student compact">
+        <span>${escapeHtml(enrollment.studentName)}</span>
+        <span class="status ${enrollment.status === "WAITLISTED" ? "waitlisted" : ""}">
+          ${enrollment.status === "WAITLISTED" ? "Ceka" : "Zapsan"}
+        </span>
+      </div>
+    `).join("")}</div>`}
 `;
 
 const renderStudentCourseActions = (course) => {
@@ -285,7 +348,11 @@ const filteredCourses = () => state.courses.filter((course) => {
     course.status === "PUBLISHED" ? "publikovano" : "koncept",
   ].some((value) => normalize(value).includes(query));
   const matchesStatus = state.filters.courseStatus === "ALL" || course.status === state.filters.courseStatus;
-  return matchesText && matchesStatus;
+  const hasOpenSeat = course.enrolledCount < course.capacity;
+  const matchesCapacity = state.filters.courseCapacity === "ALL"
+    || (state.filters.courseCapacity === "OPEN" && hasOpenSeat)
+    || (state.filters.courseCapacity === "FULL" && !hasOpenSeat);
+  return matchesText && matchesStatus && matchesCapacity;
 });
 
 const filteredStudents = () => state.students.filter((student) => {
@@ -305,6 +372,37 @@ const filteredInstructors = () => state.instructors.filter((instructor) => {
 const normalize = (value) => String(value).trim().toLocaleLowerCase("cs-CZ");
 
 const resultCount = (shown, total) => shown === total ? `${total} celkem` : `Zobrazeno ${shown} z ${total}`;
+
+const emptyState = (title, text) => `
+  <div class="empty-state">
+    <strong>${title}</strong>
+    <p>${text}</p>
+  </div>
+`;
+
+const openCourseDetail = (courseId) => {
+  const course = state.courses.find((item) => item.id === Number(courseId));
+  if (!course) {
+    return;
+  }
+  document.querySelector("#courseDetailTitle").textContent = course.title;
+  document.querySelector("#courseDetailBody").innerHTML = renderCourseDetail(course);
+  document.querySelector("#courseDetailModal").classList.remove("hidden");
+};
+
+const closeModals = () => {
+  document.querySelector("#courseDetailModal").classList.add("hidden");
+  document.querySelector("#confirmModal").classList.add("hidden");
+  state.pendingDeleteCourseId = null;
+};
+
+const openDeleteConfirm = (courseId) => {
+  const course = state.courses.find((item) => item.id === Number(courseId));
+  state.pendingDeleteCourseId = Number(courseId);
+  document.querySelector("#confirmMessage").textContent =
+    `Opravdu zrusit kurz "${course?.title || "vybrany kurz"}" vcetne terminu a zapisu?`;
+  document.querySelector("#confirmModal").classList.remove("hidden");
+};
 
 const roleLabel = (role) => ({
   ADMIN: "admin",
@@ -363,6 +461,7 @@ document.querySelector("#instructorForm").addEventListener("submit", async (even
 
 document.querySelector("#courseForm").addEventListener("submit", async (event) => {
   event.preventDefault();
+  const submitButton = event.currentTarget.querySelector('button[type="submit"]');
   const form = new FormData(event.currentTarget);
   await handle(async () => {
     const payload = { title: form.get("title"), capacity: Number(form.get("capacity")) };
@@ -387,7 +486,7 @@ document.querySelector("#courseForm").addEventListener("submit", async (event) =
       });
     }
     await api(`/api/courses/${course.id}/publish`, { method: "POST" });
-  }, "Kurz vytvoren a publikovan.");
+  }, "Kurz vytvoren a publikovan.", submitButton);
   event.currentTarget.reset();
   resetCourseSessionRows();
 });
@@ -402,6 +501,20 @@ document.addEventListener("click", async (event) => {
   if (target.dataset.adminTab) {
     state.activeAdminTab = target.dataset.adminTab;
     render();
+    return;
+  }
+  if (target.dataset.closeModal || target.classList.contains("modal")) {
+    closeModals();
+    return;
+  }
+  if (target.dataset.cancelConfirm) {
+    closeModals();
+    return;
+  }
+  if (target.dataset.confirmDelete) {
+    const courseId = state.pendingDeleteCourseId;
+    closeModals();
+    await handle(() => api(`/api/courses/${courseId}`, { method: "DELETE" }), "Kurz zrusen.", target);
     return;
   }
   await routeAction(target);
@@ -433,6 +546,11 @@ document.querySelector("#courseStatusFilter").addEventListener("change", (event)
   renderCourses();
 });
 
+document.querySelector("#courseCapacityFilter").addEventListener("change", (event) => {
+  state.filters.courseCapacity = event.target.value;
+  renderCourses();
+});
+
 document.querySelector("#studentSearch").addEventListener("input", (event) => {
   state.filters.studentSearch = event.target.value;
   renderStudents();
@@ -449,6 +567,10 @@ document.querySelector("#instructorSearch").addEventListener("input", (event) =>
 });
 
 const routeAction = async (target) => {
+  if (target.dataset.viewCourseDetail) {
+    openCourseDetail(target.dataset.viewCourseDetail);
+    return;
+  }
   if (target.dataset.enroll) {
     await handle(() => api(`/api/courses/${target.dataset.enroll}/enroll`, {
       method: "POST",
@@ -467,10 +589,7 @@ const routeAction = async (target) => {
     }), "Kapacita ulozena.");
   }
   if (target.dataset.deleteCourse) {
-    if (!window.confirm("Opravdu zrusit kurz vcetne terminu a zapisu?")) {
-      return;
-    }
-    await handle(() => api(`/api/courses/${target.dataset.deleteCourse}`, { method: "DELETE" }), "Kurz zrusen.");
+    openDeleteConfirm(target.dataset.deleteCourse);
   }
   if (target.dataset.cancel) {
     const [courseId, studentId] = target.dataset.cancel.split(":");
@@ -491,10 +610,14 @@ const routeAction = async (target) => {
 const sessionsFromForm = (container) => [...container.querySelectorAll(".session-row, .session-inline")]
   .map((row) => {
     const value = (name) => row.querySelector(`[name="${name}"]`).value;
-    return {
+    const session = {
       startsAt: `${value("date")}T${value("startsAt")}:00`,
       endsAt: `${value("date")}T${value("endsAt")}:00`,
     };
+    if (new Date(session.endsAt) <= new Date(session.startsAt)) {
+      throw new Error("Cas konce terminu musi byt pozdeji nez cas zacatku.");
+    }
+    return session;
   });
 
 const addCourseSessionRow = () => {
@@ -529,8 +652,11 @@ const formatTime = (value) => new Intl.DateTimeFormat("cs-CZ", {
   timeStyle: "short",
 }).format(new Date(value));
 
-const handle = async (action, successMessage) => {
+const handle = async (action, successMessage, button = null) => {
   try {
+    if (button) {
+      button.disabled = true;
+    }
     await action();
     showToast(successMessage);
     if (state.session) {
@@ -543,6 +669,10 @@ const handle = async (action, successMessage) => {
       render();
     }
     showToast(error.message);
+  } finally {
+    if (button) {
+      button.disabled = false;
+    }
   }
 };
 

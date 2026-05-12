@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Course Reservations</title>
-    <link rel="stylesheet" href="/styles.css?v=20260512-filters">
+    <link rel="stylesheet" href="/styles.css?v=20260512-polish">
 </head>
 <body>
 <header class="topbar">
@@ -44,6 +44,10 @@
         <button type="button" data-admin-tab="students">Studenti</button>
         <button type="button" data-admin-tab="instructors">Vyucujici</button>
     </nav>
+
+    <section class="overview-panel" aria-label="Prehled aplikace">
+        <div id="stats" class="stats"></div>
+    </section>
 
     <section class="panel admin-only student-panel" data-dashboard-panel="students">
         <h2>Novy student</h2>
@@ -98,6 +102,13 @@
                     <option value="DRAFT">Koncepty</option>
                 </select>
             </label>
+            <label>Obsazeni
+                <select id="courseCapacityFilter">
+                    <option value="ALL">Vsechny kapacity</option>
+                    <option value="OPEN">S volnym mistem</option>
+                    <option value="FULL">Plne kurzy</option>
+                </select>
+            </label>
         </div>
         <div id="courses" class="courses"></div>
     </section>
@@ -138,6 +149,29 @@
 </main>
 
 <div id="toast" class="toast" role="status"></div>
-<script src="/app.js?v=20260512-filters"></script>
+<div id="courseDetailModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="courseDetailTitle">
+    <div class="modal-card">
+        <div class="section-head">
+            <div>
+                <p class="eyebrow">Detail kurzu</p>
+                <h2 id="courseDetailTitle">Kurz</h2>
+            </div>
+            <button class="secondary" type="button" data-close-modal>Zavrit</button>
+        </div>
+        <div id="courseDetailBody" class="detail-body"></div>
+    </div>
+</div>
+
+<div id="confirmModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal-card confirm-card">
+        <h2 id="confirmTitle">Potvrdit akci</h2>
+        <p id="confirmMessage" class="muted spacing"></p>
+        <div class="modal-actions">
+            <button class="secondary" type="button" data-cancel-confirm>Zpet</button>
+            <button class="danger" type="button" data-confirm-delete>Potvrdit</button>
+        </div>
+    </div>
+</div>
+<script src="/app.js?v=20260512-polish"></script>
 </body>
 </html>
