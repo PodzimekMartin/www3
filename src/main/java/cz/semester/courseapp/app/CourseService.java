@@ -87,6 +87,10 @@ public class CourseService {
         return course;
     }
 
+    public void deleteCourse(Long courseId) {
+        courseRepository.delete(course(courseId));
+    }
+
     public Student setBlocked(Long studentId, boolean blocked) {
         Student student = student(studentId);
         student.setBlocked(blocked);

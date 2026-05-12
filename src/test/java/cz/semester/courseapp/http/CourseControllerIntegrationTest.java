@@ -126,6 +126,33 @@ class CourseControllerIntegrationTest {
                 .andExpect(jsonPath("$.instructorName").value("Teacher Two"));
     }
 
+    @Test
+    void instructorCanDeleteOwnCourse() throws Exception {
+        createInstructor("Teacher Three", "teacher-three@example.test");
+        String teacherToken = loginInstructor("teacher-three@example.test");
+
+        String response = mockMvc.perform(post("/api/courses")
+                        .header(AUTH_HEADER, teacherToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title": "Disposable Course", "capacity": 2}
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        long course = JsonTestSupport.idFrom(response);
+
+        mockMvc.perform(delete("/api/courses/{id}", course)
+                        .header(AUTH_HEADER, teacherToken))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/state")
+                        .header(AUTH_HEADER, teacherToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.courses.length()").value(0));
+    }
+
     private long createStudent(String name, String email) throws Exception {
         String location = mockMvc.perform(post("/api/students")
                         .header(AUTH_HEADER, adminToken())

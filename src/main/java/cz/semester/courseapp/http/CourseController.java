@@ -111,6 +111,15 @@ public class CourseController {
         return CourseResponse.from(courseService.cancelEnrollment(courseId, studentId));
     }
 
+    @DeleteMapping("/courses/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteCourse(
+            @RequestHeader("X-Auth-Token") String token,
+            @PathVariable Long id) {
+        authSessionService.requireCourseManager(token, id);
+        courseService.deleteCourse(id);
+    }
+
     @PatchMapping("/courses/{id}/capacity")
     public CourseResponse changeCapacity(
             @RequestHeader("X-Auth-Token") String token,

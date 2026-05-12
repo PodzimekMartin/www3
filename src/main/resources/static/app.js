@@ -165,6 +165,7 @@ const renderCourseManagerActions = (course) => `
     <button class="secondary" data-publish="${course.id}">Publikovat</button>
     <input data-capacity="${course.id}" type="number" min="1" value="${course.capacity}">
     <button class="secondary" data-save-capacity="${course.id}">Ulozit kapacitu</button>
+    <button class="danger" data-delete-course="${course.id}">Zrusit kurz</button>
   </div>
   <form class="session-inline" data-existing-session-form="${course.id}">
     <label>Datum <input name="date" required type="date" value="${defaultSessionDate()}"></label>
@@ -334,6 +335,12 @@ const routeAction = async (target) => {
       method: "PATCH",
       body: JSON.stringify({ capacity: Number(input.value) }),
     }), "Kapacita ulozena.");
+  }
+  if (target.dataset.deleteCourse) {
+    if (!window.confirm("Opravdu zrusit kurz vcetne terminu a zapisu?")) {
+      return;
+    }
+    await handle(() => api(`/api/courses/${target.dataset.deleteCourse}`, { method: "DELETE" }), "Kurz zrusen.");
   }
   if (target.dataset.cancel) {
     const [courseId, studentId] = target.dataset.cancel.split(":");
