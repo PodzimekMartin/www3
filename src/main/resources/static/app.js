@@ -2,6 +2,7 @@ const state = {
   students: [],
   instructors: [],
   courses: [],
+  activeAdminTab: "courses",
   session: JSON.parse(window.localStorage.getItem("courseSession") || "null"),
 };
 
@@ -57,6 +58,7 @@ const render = () => {
   document.querySelectorAll(".course-manager-only").forEach((element) => {
     element.classList.toggle("hidden", !["ADMIN", "INSTRUCTOR"].includes(state.session?.role));
   });
+  renderAdminDashboard();
   syncCourseInstructorField();
 
   if (!signedIn) {
@@ -68,6 +70,29 @@ const render = () => {
   renderStudents();
   renderInstructors();
   renderCourses();
+};
+
+const renderAdminDashboard = () => {
+  const isAdmin = state.session?.role === "ADMIN";
+  document.querySelectorAll("[data-admin-tab]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.adminTab === state.activeAdminTab);
+  });
+  if (!isAdmin) {
+    document.querySelectorAll("[data-dashboard-panel]").forEach((panel) => {
+      if (panel.classList.contains("admin-only")) {
+        return;
+      }
+      if (panel.classList.contains("course-manager-only")) {
+        panel.classList.toggle("hidden", state.session?.role !== "INSTRUCTOR");
+        return;
+      }
+      panel.classList.remove("hidden");
+    });
+    return;
+  }
+  document.querySelectorAll("[data-dashboard-panel]").forEach((panel) => {
+    panel.classList.toggle("hidden", panel.dataset.dashboardPanel !== state.activeAdminTab);
+  });
 };
 
 const renderStudents = () => {
@@ -320,6 +345,11 @@ document.querySelector("#addCourseSessionButton").addEventListener("click", () =
 document.addEventListener("click", async (event) => {
   const target = event.target;
   if (!(target instanceof HTMLElement)) {
+    return;
+  }
+  if (target.dataset.adminTab) {
+    state.activeAdminTab = target.dataset.adminTab;
+    render();
     return;
   }
   await routeAction(target);

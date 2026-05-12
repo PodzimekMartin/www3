@@ -106,6 +106,27 @@ h3 {
     padding: 18px;
 }
 
+.dashboard-tabs {
+    background: #ffffff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    display: grid;
+    gap: 8px;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 8px;
+}
+
+.dashboard-tabs button {
+    background: transparent;
+    color: var(--muted);
+}
+
+.dashboard-tabs button.active {
+    background: var(--accent);
+    color: #ffffff;
+}
+
 .student-panel,
 .instructor-panel,
 .course-form-panel {
@@ -359,8 +380,13 @@ button.danger {
     .course-form-panel,
     .course-list-panel,
     .students-panel,
-    .instructors-panel {
+    .instructors-panel,
+    .dashboard-tabs {
         grid-column: 1;
+    }
+
+    .dashboard-tabs {
+        grid-template-columns: 1fr;
     }
 
     .grid-actions {

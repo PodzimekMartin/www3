@@ -39,7 +39,13 @@
     </section>
 
     <div id="appContent" class="layout hidden">
-    <section class="panel admin-only student-panel">
+    <nav id="adminTabs" class="dashboard-tabs admin-only" aria-label="Admin dashboard">
+        <button type="button" data-admin-tab="courses">Kurzy</button>
+        <button type="button" data-admin-tab="students">Studenti</button>
+        <button type="button" data-admin-tab="instructors">Vyucujici</button>
+    </nav>
+
+    <section class="panel admin-only student-panel" data-dashboard-panel="students">
         <h2>Novy student</h2>
         <form id="studentForm" class="stack">
             <label>Jmeno <input name="name" required placeholder="Ada Lovelace"></label>
@@ -48,7 +54,7 @@
         </form>
     </section>
 
-    <section class="panel admin-only instructor-panel">
+    <section class="panel admin-only instructor-panel" data-dashboard-panel="instructors">
         <h2>Novy vyucujici</h2>
         <form id="instructorForm" class="stack">
             <label>Jmeno <input name="name" required placeholder="Jan Novak"></label>
@@ -57,7 +63,7 @@
         </form>
     </section>
 
-    <section class="panel course-manager-only course-form-panel">
+    <section class="panel course-manager-only course-form-panel" data-dashboard-panel="courses">
         <h2>Novy kurz</h2>
         <form id="courseForm" class="stack">
             <label>Nazev <input name="title" required placeholder="DevOps pipeline prakticky"></label>
@@ -76,7 +82,7 @@
         </form>
     </section>
 
-    <section class="panel course-list-panel">
+    <section class="panel course-list-panel" data-dashboard-panel="courses">
         <div class="section-head">
             <h2>Kurzy</h2>
             <p id="summary" class="muted"></p>
@@ -84,12 +90,12 @@
         <div id="courses" class="courses"></div>
     </section>
 
-    <section class="panel admin-only students-panel">
+    <section class="panel admin-only students-panel" data-dashboard-panel="students">
         <h2>Studenti</h2>
         <div id="students" class="students"></div>
     </section>
 
-    <section class="panel admin-only instructors-panel">
+    <section class="panel admin-only instructors-panel" data-dashboard-panel="instructors">
         <h2>Vyucujici</h2>
         <div id="instructors" class="students"></div>
     </section>
@@ -97,6 +103,6 @@
 </main>
 
 <div id="toast" class="toast" role="status"></div>
-<script src="/app.js?v=20260512-autopublish-courses"></script>
+<script src="/app.js?v=20260512-admin-dashboard"></script>
 </body>
 </html>
