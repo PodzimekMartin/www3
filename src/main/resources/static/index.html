@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Course Reservations</title>
-    <link rel="stylesheet" href="/styles.css?v=20260512-dashboard-layout">
+    <link rel="stylesheet" href="/styles.css?v=20260512-filters">
 </head>
 <body>
 <header class="topbar">
@@ -85,24 +85,59 @@
     <section class="panel course-list-panel" data-dashboard-panel="courses">
         <div class="section-head">
             <h2>Kurzy</h2>
-            <p id="summary" class="muted"></p>
+            <p id="courseResultCount" class="muted"></p>
+        </div>
+        <div class="filters">
+            <label>Vyhledat
+                <input id="courseSearch" type="search" placeholder="Nazev kurzu nebo vyucujici">
+            </label>
+            <label>Stav
+                <select id="courseStatusFilter">
+                    <option value="ALL">Vsechny kurzy</option>
+                    <option value="PUBLISHED">Publikovane</option>
+                    <option value="DRAFT">Koncepty</option>
+                </select>
+            </label>
         </div>
         <div id="courses" class="courses"></div>
     </section>
 
     <section class="panel admin-only students-panel" data-dashboard-panel="students">
-        <h2>Studenti</h2>
+        <div class="section-head">
+            <h2>Studenti</h2>
+            <p id="studentResultCount" class="muted"></p>
+        </div>
+        <div class="filters">
+            <label>Vyhledat
+                <input id="studentSearch" type="search" placeholder="Jmeno nebo e-mail">
+            </label>
+            <label>Stav
+                <select id="studentStatusFilter">
+                    <option value="ALL">Vsichni studenti</option>
+                    <option value="ACTIVE">Aktivni</option>
+                    <option value="BLOCKED">Blokovani</option>
+                </select>
+            </label>
+        </div>
         <div id="students" class="students"></div>
     </section>
 
     <section class="panel admin-only instructors-panel" data-dashboard-panel="instructors">
-        <h2>Vyucujici</h2>
+        <div class="section-head">
+            <h2>Vyucujici</h2>
+            <p id="instructorResultCount" class="muted"></p>
+        </div>
+        <div class="filters">
+            <label>Vyhledat
+                <input id="instructorSearch" type="search" placeholder="Jmeno nebo e-mail">
+            </label>
+        </div>
         <div id="instructors" class="students"></div>
     </section>
     </div>
 </main>
 
 <div id="toast" class="toast" role="status"></div>
-<script src="/app.js?v=20260512-admin-dashboard"></script>
+<script src="/app.js?v=20260512-filters"></script>
 </body>
 </html>

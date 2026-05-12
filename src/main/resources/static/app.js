@@ -3,6 +3,13 @@ const state = {
   instructors: [],
   courses: [],
   activeAdminTab: "courses",
+  filters: {
+    courseSearch: "",
+    courseStatus: "ALL",
+    studentSearch: "",
+    studentStatus: "ALL",
+    instructorSearch: "",
+  },
   session: JSON.parse(window.localStorage.getItem("courseSession") || "null"),
 };
 
@@ -64,8 +71,6 @@ const render = () => {
   if (!signedIn) {
     return;
   }
-  document.querySelector("#summary").textContent =
-    `${state.courses.length} kurzu, ${state.students.length} studentu, ${state.instructors.length} vyucujicich`;
   renderInstructorOptions();
   renderStudents();
   renderInstructors();
@@ -98,7 +103,13 @@ const renderAdminDashboard = () => {
 const renderStudents = () => {
   const container = document.querySelector("#students");
   container.innerHTML = "";
-  state.students.forEach((student) => {
+  const students = filteredStudents();
+  document.querySelector("#studentResultCount").textContent = resultCount(students.length, state.students.length);
+  if (students.length === 0) {
+    container.innerHTML = `<p class="muted">Zadny student neodpovida filtru.</p>`;
+    return;
+  }
+  students.forEach((student) => {
     const row = document.createElement("div");
     row.className = "student";
     row.innerHTML = `
@@ -117,7 +128,13 @@ const renderStudents = () => {
 const renderInstructors = () => {
   const container = document.querySelector("#instructors");
   container.innerHTML = "";
-  state.instructors.forEach((instructor) => {
+  const instructors = filteredInstructors();
+  document.querySelector("#instructorResultCount").textContent = resultCount(instructors.length, state.instructors.length);
+  if (instructors.length === 0) {
+    container.innerHTML = `<p class="muted">Zadny vyucujici neodpovida filtru.</p>`;
+    return;
+  }
+  instructors.forEach((instructor) => {
     const row = document.createElement("div");
     row.className = "student";
     row.innerHTML = `
@@ -153,7 +170,13 @@ const syncCourseInstructorField = () => {
 const renderCourses = () => {
   const container = document.querySelector("#courses");
   container.innerHTML = "";
-  state.courses.forEach((course) => {
+  const courses = filteredCourses();
+  document.querySelector("#courseResultCount").textContent = resultCount(courses.length, state.courses.length);
+  if (courses.length === 0) {
+    container.innerHTML = `<p class="muted">Zadny kurz neodpovida filtru.</p>`;
+    return;
+  }
+  courses.forEach((course) => {
     const article = document.createElement("article");
     article.className = "course";
     article.innerHTML = `
@@ -253,6 +276,35 @@ const ownEnrollmentFor = (course) =>
   course.enrollments.find((enrollment) => enrollment.studentId === state.session.studentId);
 
 const isCourseManager = () => ["ADMIN", "INSTRUCTOR"].includes(state.session?.role);
+
+const filteredCourses = () => state.courses.filter((course) => {
+  const query = normalize(state.filters.courseSearch);
+  const matchesText = !query || [
+    course.title,
+    course.instructorName || "",
+    course.status === "PUBLISHED" ? "publikovano" : "koncept",
+  ].some((value) => normalize(value).includes(query));
+  const matchesStatus = state.filters.courseStatus === "ALL" || course.status === state.filters.courseStatus;
+  return matchesText && matchesStatus;
+});
+
+const filteredStudents = () => state.students.filter((student) => {
+  const query = normalize(state.filters.studentSearch);
+  const matchesText = !query || [student.name, student.email].some((value) => normalize(value).includes(query));
+  const matchesStatus = state.filters.studentStatus === "ALL"
+    || (state.filters.studentStatus === "BLOCKED" && student.blocked)
+    || (state.filters.studentStatus === "ACTIVE" && !student.blocked);
+  return matchesText && matchesStatus;
+});
+
+const filteredInstructors = () => state.instructors.filter((instructor) => {
+  const query = normalize(state.filters.instructorSearch);
+  return !query || [instructor.name, instructor.email].some((value) => normalize(value).includes(query));
+});
+
+const normalize = (value) => String(value).trim().toLocaleLowerCase("cs-CZ");
+
+const resultCount = (shown, total) => shown === total ? `${total} celkem` : `Zobrazeno ${shown} z ${total}`;
 
 const roleLabel = (role) => ({
   ADMIN: "admin",
@@ -370,6 +422,31 @@ document.addEventListener("submit", async (event) => {
 });
 
 document.querySelector("#refreshButton").addEventListener("click", () => handle(loadState, "Data obnovena."));
+
+document.querySelector("#courseSearch").addEventListener("input", (event) => {
+  state.filters.courseSearch = event.target.value;
+  renderCourses();
+});
+
+document.querySelector("#courseStatusFilter").addEventListener("change", (event) => {
+  state.filters.courseStatus = event.target.value;
+  renderCourses();
+});
+
+document.querySelector("#studentSearch").addEventListener("input", (event) => {
+  state.filters.studentSearch = event.target.value;
+  renderStudents();
+});
+
+document.querySelector("#studentStatusFilter").addEventListener("change", (event) => {
+  state.filters.studentStatus = event.target.value;
+  renderStudents();
+});
+
+document.querySelector("#instructorSearch").addEventListener("input", (event) => {
+  state.filters.instructorSearch = event.target.value;
+  renderInstructors();
+});
 
 const routeAction = async (target) => {
   if (target.dataset.enroll) {
