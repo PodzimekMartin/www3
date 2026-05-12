@@ -139,6 +139,18 @@ h3 {
     grid-column: 2;
 }
 
+.layout.admin-mode .student-panel,
+.layout.admin-mode .instructor-panel,
+.layout.admin-mode .course-form-panel {
+    grid-column: 1;
+}
+
+.layout.admin-mode .course-list-panel,
+.layout.admin-mode .students-panel,
+.layout.admin-mode .instructors-panel {
+    grid-column: 2;
+}
+
 .layout.student-mode,
 .layout.instructor-mode {
     grid-template-columns: minmax(0, 1fr);
