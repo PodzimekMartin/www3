@@ -57,7 +57,7 @@ const render = () => {
   document.querySelectorAll(".course-manager-only").forEach((element) => {
     element.classList.toggle("hidden", !["ADMIN", "INSTRUCTOR"].includes(state.session?.role));
   });
-  document.querySelector("#courseInstructorField").classList.toggle("hidden", state.session?.role !== "ADMIN");
+  syncCourseInstructorField();
 
   if (!signedIn) {
     return;
@@ -113,6 +113,16 @@ const renderInstructorOptions = () => {
       <option value="${instructor.id}">${escapeHtml(instructor.name)} (${escapeHtml(instructor.email)})</option>
     `)
     .join("");
+  syncCourseInstructorField();
+};
+
+const syncCourseInstructorField = () => {
+  const adminMode = state.session?.role === "ADMIN";
+  const field = document.querySelector("#courseInstructorField");
+  const select = document.querySelector("#courseInstructorSelect");
+  field.classList.toggle("hidden", !adminMode);
+  select.disabled = !adminMode;
+  select.required = adminMode;
 };
 
 const renderCourses = () => {
