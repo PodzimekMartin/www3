@@ -219,7 +219,6 @@ const renderCourses = () => {
         </span>
       </div>
       ${renderSessions(course.sessions)}
-      <button class="secondary spacing" data-view-course-detail="${course.id}">Detail kurzu</button>
       ${isCourseManager()
         ? renderCourseManagerActions(course)
         : renderStudentCourseActions(course)}
@@ -245,18 +244,36 @@ const renderSessions = (sessions) => {
 };
 
 const renderCourseManagerActions = (course) => `
-  <div class="grid-actions admin-actions">
-    <button class="secondary" data-publish="${course.id}">Publikovat</button>
-    <input data-capacity="${course.id}" type="number" min="1" value="${course.capacity}">
-    <button class="secondary" data-save-capacity="${course.id}">Ulozit kapacitu</button>
-    <button class="danger" data-delete-course="${course.id}">Zrusit kurz</button>
+  <div class="course-actions">
+    <div class="action-group ${course.status === "PUBLISHED" ? "single-action" : ""}">
+      <span class="action-label">Sprava</span>
+      <button class="secondary" data-view-course-detail="${course.id}">Detail</button>
+      ${course.status === "DRAFT"
+        ? `<button data-publish="${course.id}">Publikovat</button>`
+        : ""}
+    </div>
+    <div class="action-group capacity-action">
+      <span class="action-label">Kapacita</span>
+      <input aria-label="Kapacita kurzu" data-capacity="${course.id}" type="number" min="1" value="${course.capacity}">
+      <button class="secondary" data-save-capacity="${course.id}">Ulozit</button>
+    </div>
+    <div class="action-group danger-zone">
+      <span class="action-label">Kurz</span>
+      <button class="danger" data-delete-course="${course.id}">Zrusit kurz</button>
+    </div>
   </div>
-  <form class="session-inline" data-existing-session-form="${course.id}">
-    <label>Datum <input name="date" required type="date" value="${defaultSessionDate()}"></label>
-    <label>Od <input name="startsAt" required type="time" value="10:00"></label>
-    <label>Do <input name="endsAt" required type="time" value="12:00"></label>
-    <button class="secondary" type="submit">Pridat termin</button>
-  </form>
+  <div class="course-subsection">
+    <div class="section-head">
+      <h3>Pridat termin</h3>
+      <p class="muted">Rozsireni rozvrhu kurzu</p>
+    </div>
+    <form class="session-inline" data-existing-session-form="${course.id}">
+      <label>Datum <input name="date" required type="date" value="${defaultSessionDate()}"></label>
+      <label>Od <input name="startsAt" required type="time" value="10:00"></label>
+      <label>Do <input name="endsAt" required type="time" value="12:00"></label>
+      <button class="secondary" type="submit">Pridat termin</button>
+    </form>
+  </div>
 `;
 
 const renderCourseDetail = (course) => `
@@ -304,6 +321,7 @@ const renderStudentCourseActions = (course) => {
   if (ownEnrollment) {
     return `
       <div class="student-actions">
+        <button class="secondary" data-view-course-detail="${course.id}">Detail kurzu</button>
         <span class="status ${ownEnrollment.status === "WAITLISTED" ? "waitlisted" : ""}">
           ${ownEnrollment.status === "WAITLISTED" ? "Jsi na cekaci listine" : "Jsi zapsany"}
         </span>
@@ -313,6 +331,7 @@ const renderStudentCourseActions = (course) => {
   }
   return `
     <div class="student-actions">
+      <button class="secondary" data-view-course-detail="${course.id}">Detail kurzu</button>
       <button data-enroll="${course.id}">Zapsat se na kurz</button>
     </div>
   `;
@@ -461,7 +480,8 @@ document.querySelector("#instructorForm").addEventListener("submit", async (even
 
 document.querySelector("#courseForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const submitButton = event.currentTarget.querySelector('button[type="submit"]');
+  const submitButton = event.submitter;
+  const shouldPublish = submitButton?.value === "publish";
   const form = new FormData(event.currentTarget);
   await handle(async () => {
     const payload = { title: form.get("title"), capacity: Number(form.get("capacity")) };
@@ -485,8 +505,10 @@ document.querySelector("#courseForm").addEventListener("submit", async (event) =
         body: JSON.stringify(session),
       });
     }
-    await api(`/api/courses/${course.id}/publish`, { method: "POST" });
-  }, "Kurz vytvoren a publikovan.", submitButton);
+    if (shouldPublish) {
+      await api(`/api/courses/${course.id}/publish`, { method: "POST" });
+    }
+  }, shouldPublish ? "Kurz vytvoren a publikovan." : "Koncept kurzu vytvoren.", submitButton);
   event.currentTarget.reset();
   resetCourseSessionRows();
 });

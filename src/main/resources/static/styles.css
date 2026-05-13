@@ -204,6 +204,12 @@ h3 {
     margin-top: 14px;
 }
 
+.form-actions {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
 label {
     color: var(--muted);
     display: grid;
@@ -344,17 +350,6 @@ button.danger {
     color: #455565;
 }
 
-.grid-actions {
-    display: grid;
-    gap: 8px;
-    grid-template-columns: repeat(3, minmax(120px, 1fr));
-    margin-top: 12px;
-}
-
-.admin-actions {
-    grid-template-columns: repeat(4, minmax(120px, 1fr));
-}
-
 .session-editor,
 .sessions {
     display: grid;
@@ -389,6 +384,57 @@ button.danger {
 .session-inline {
     border-top: 1px solid var(--line);
     grid-template-columns: minmax(130px, 1fr) minmax(90px, 0.7fr) minmax(90px, 0.7fr) auto;
+    margin-top: 10px;
+    padding-top: 12px;
+}
+
+.course-actions {
+    border-top: 1px solid var(--line);
+    display: grid;
+    gap: 10px;
+    grid-template-columns: minmax(160px, 0.9fr) minmax(220px, 1.1fr) minmax(130px, 0.75fr);
+    margin-top: 14px;
+    padding-top: 12px;
+}
+
+.action-group {
+    align-items: end;
+    background: #f8fafc;
+    border: 1px solid #e6edf3;
+    border-radius: 8px;
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 10px;
+}
+
+.action-group.single-action {
+    grid-template-columns: 1fr;
+}
+
+.action-group button,
+.action-group input {
+    min-height: 38px;
+}
+
+.action-label {
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 800;
+    grid-column: 1 / -1;
+    text-transform: uppercase;
+}
+
+.capacity-action {
+    grid-template-columns: minmax(70px, 0.8fr) minmax(100px, 1fr);
+}
+
+.danger-zone {
+    grid-template-columns: 1fr;
+}
+
+.course-subsection {
+    border-top: 1px solid var(--line);
     margin-top: 12px;
     padding-top: 12px;
 }
@@ -396,6 +442,7 @@ button.danger {
 .student-actions {
     align-items: center;
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     margin-top: 12px;
 }
@@ -544,17 +591,15 @@ button.danger {
         grid-template-columns: 1fr;
     }
 
-    .grid-actions {
-        grid-template-columns: 1fr;
-    }
-
     .filters {
         grid-template-columns: 1fr;
     }
 
     .session-row,
     .session-inline,
-    .admin-actions {
+    .course-actions,
+    .action-group,
+    .form-actions {
         grid-template-columns: 1fr;
     }
 }

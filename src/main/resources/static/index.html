@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Course Reservations</title>
-    <link rel="stylesheet" href="/styles.css?v=20260512-polish">
+    <link rel="stylesheet" href="/styles.css?v=20260513-publish-flow">
 </head>
 <body>
 <header class="topbar">
@@ -82,7 +82,10 @@
                 </div>
                 <div id="courseSessionRows" class="session-editor"></div>
             </div>
-            <button type="submit">Vytvorit kurz</button>
+            <div class="form-actions">
+                <button class="secondary" type="submit" name="publishMode" value="draft">Vytvorit koncept</button>
+                <button type="submit" name="publishMode" value="publish">Vytvorit a publikovat</button>
+            </div>
         </form>
     </section>
 
@@ -172,6 +175,6 @@
         </div>
     </div>
 </div>
-<script src="/app.js?v=20260512-polish"></script>
+<script src="/app.js?v=20260513-publish-flow"></script>
 </body>
 </html>
