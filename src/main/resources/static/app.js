@@ -205,25 +205,50 @@ const renderCourses = () => {
     const article = document.createElement("article");
     article.className = "course";
     article.innerHTML = `
-      <div class="course-title">
+      <div class="course-header">
         <div>
           <h3>${escapeHtml(course.title)}</h3>
-          <p class="muted">
-            ${course.enrolledCount}/${course.capacity} zapsano,
-            ${course.waitlistCount} na cekaci listine
-          </p>
           <p class="muted">Vyucujici: ${escapeHtml(course.instructorName || "Neprirazeno")}</p>
         </div>
         <span class="badge ${course.status === "PUBLISHED" ? "published" : "draft"}">
           ${course.status === "PUBLISHED" ? "Publikovano" : "Koncept"}
         </span>
       </div>
-      ${renderSessions(course.sessions)}
+      <div class="course-facts">
+        <div>
+          <span>Zapsano</span>
+          <strong>${course.enrolledCount}/${course.capacity}</strong>
+        </div>
+        <div>
+          <span>Cekaci listina</span>
+          <strong>${course.waitlistCount}</strong>
+        </div>
+        <div>
+          <span>Terminy</span>
+          <strong>${course.sessions.length}</strong>
+        </div>
+        <div>
+          <span>Volna mista</span>
+          <strong>${Math.max(course.capacity - course.enrolledCount, 0)}</strong>
+        </div>
+      </div>
+      <div class="course-section">
+        <div class="course-section-title">
+          <h4>Terminy</h4>
+          <span>${course.sessions.length === 0 ? "Bez terminu" : `${course.sessions.length} planovano`}</span>
+        </div>
+        ${renderSessions(course.sessions)}
+      </div>
       ${isCourseManager()
         ? renderCourseManagerActions(course)
         : renderStudentCourseActions(course)}
-      <div>
+      <div class="course-section">
+        <div class="course-section-title">
+          <h4>Zapsani studenti</h4>
+          <span>${course.enrollments.length} zaznamu</span>
+        </div>
         ${course.enrollments.map((enrollment) => renderEnrollment(course, enrollment)).join("")}
+        ${course.enrollments.length === 0 ? `<p class="muted spacing">Zatim bez zapisu.</p>` : ""}
       </div>
     `;
     container.append(article);
@@ -232,7 +257,7 @@ const renderCourses = () => {
 
 const renderSessions = (sessions) => {
   if (sessions.length === 0) {
-    return `<p class="muted spacing">Zatim neni pridan zadny termin.</p>`;
+    return `<p class="muted">Zatim neni pridan zadny termin.</p>`;
   }
   return `
     <div class="sessions">
@@ -244,7 +269,12 @@ const renderSessions = (sessions) => {
 };
 
 const renderCourseManagerActions = (course) => `
-  <div class="course-actions">
+  <div class="course-section">
+    <div class="course-section-title">
+      <h4>Akce kurzu</h4>
+      <span>${course.status === "DRAFT" ? "Koncept lze publikovat" : "Kurz je publikovany"}</span>
+    </div>
+    <div class="course-actions">
     <div class="action-group ${course.status === "PUBLISHED" ? "single-action" : ""}">
       <span class="action-label">Sprava</span>
       <button class="secondary" data-view-course-detail="${course.id}">Detail</button>
@@ -261,6 +291,7 @@ const renderCourseManagerActions = (course) => `
       <span class="action-label">Kurz</span>
       <button class="danger" data-delete-course="${course.id}">Zrusit kurz</button>
     </div>
+  </div>
   </div>
   <div class="course-subsection">
     <div class="section-head">
