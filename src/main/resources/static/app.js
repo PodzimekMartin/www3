@@ -300,18 +300,6 @@ const renderCourseManagerActions = (course) => `
     </div>
   </div>
   </div>
-  <div class="course-subsection">
-    <div class="section-head">
-      <h3>Pridat termin</h3>
-      <p class="muted">Rozsireni rozvrhu kurzu</p>
-    </div>
-    <form class="session-inline" data-existing-session-form="${course.id}">
-      <label>Datum <input name="date" required type="date" value="${defaultSessionDate()}"></label>
-      <label>Od <input name="startsAt" required type="time" value="10:00"></label>
-      <label>Do <input name="endsAt" required type="time" value="12:00"></label>
-      <button class="secondary" type="submit">Pridat termin</button>
-    </form>
-  </div>
 `;
 
 const renderCourseDetail = (course) => `
@@ -580,20 +568,6 @@ document.addEventListener("click", async (event) => {
   await routeAction(target);
 });
 
-document.addEventListener("submit", async (event) => {
-  const form = event.target;
-  if (!(form instanceof HTMLFormElement) || !form.dataset.existingSessionForm) {
-    return;
-  }
-  event.preventDefault();
-  const [session] = sessionsFromForm(form);
-  await handle(() => api(`/api/courses/${form.dataset.existingSessionForm}/sessions`, {
-    method: "POST",
-    body: JSON.stringify(session),
-  }), "Termin pridan.");
-  form.reset();
-});
-
 document.querySelector("#refreshButton").addEventListener("click", () => handle(loadState, "Data obnovena."));
 
 document.querySelector("#courseSearch").addEventListener("input", (event) => {
@@ -678,7 +652,7 @@ const routeAction = async (target) => {
   }
 };
 
-const sessionsFromForm = (container) => [...container.querySelectorAll(".session-row, .session-inline")]
+const sessionsFromForm = (container) => [...container.querySelectorAll(".session-row")]
   .map((row) => {
     const value = (name) => row.querySelector(`[name="${name}"]`).value;
     const session = {

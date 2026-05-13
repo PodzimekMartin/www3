@@ -492,8 +492,7 @@ button.danger {
     width: fit-content;
 }
 
-.session-row,
-.session-inline {
+.session-row {
     align-items: end;
     display: grid;
     gap: 8px;
@@ -502,13 +501,6 @@ button.danger {
 
 .session-row button {
     grid-column: 1 / -1;
-}
-
-.session-inline {
-    border-top: 1px solid var(--line);
-    grid-template-columns: minmax(130px, 1fr) minmax(90px, 0.7fr) minmax(90px, 0.7fr) auto;
-    margin-top: 10px;
-    padding-top: 12px;
 }
 
 .course-actions {
@@ -719,7 +711,6 @@ button.danger {
     }
 
     .session-row,
-    .session-inline,
     .course-actions,
     .action-group,
     .form-actions {
