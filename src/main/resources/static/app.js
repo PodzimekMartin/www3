@@ -116,9 +116,13 @@ const renderStats = () => {
   const cards = [
     ["Kurzy", state.courses.length, `${published} publikovano, ${drafts} konceptu`],
     ["Volna mista", openSeats, "Napric kurzy"],
-    ["Studenti", state.students.length, `${activeStudents} aktivni, ${blockedStudents} blokovani`],
-    ["Vyucujici", state.instructors.length, "Prirazeni ke kurzum"],
   ];
+  if (state.session?.role !== "STUDENT") {
+    cards.push(["Studenti", state.students.length, `${activeStudents} aktivni, ${blockedStudents} blokovani`]);
+  }
+  if (state.session?.role === "ADMIN") {
+    cards.push(["Vyucujici", state.instructors.length, "Prirazeni ke kurzum"]);
+  }
   document.querySelector("#stats").innerHTML = cards.map(([label, value, detail]) => `
     <article class="stat-card">
       <span>${label}</span>
