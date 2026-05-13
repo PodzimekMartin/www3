@@ -1,27 +1,30 @@
 # Architektura
 
-```mermaid
-flowchart LR
-    user["Uzivatel ve frontend UI"] --> web["Spring MVC REST API"]
-    web --> service["CourseService"]
-    service --> domain["Domena: Course, Student, Enrollment, Session"]
-    service --> repo["Spring Data JPA repositories"]
-    repo --> db["H2 lokalne / PostgreSQL v Dockeru a K8s"]
-    service --> notify["NotificationGateway"]
-    web --> actuator["Actuator metrics + health"]
-```
+Aplikace je postavena jako Spring Boot monolit s jednoduchym statickym frontendem.
 
 ## Vrstvy
 
-- `domain` obsahuje entity a business pravidla. Zde je hlavni TDD jadro.
-- `app` obsahuje aplikační service, transakce a port `NotificationGateway`.
-- `infra` obsahuje JPA repository, logovaci notifikace a seed data.
-- `http` obsahuje REST controller, DTO a chybove odpovedi.
-- `static` obsahuje frontend bez build kroku.
+- `http` - REST kontrolery, request/response DTO, zpracovani chyb a Swagger konfigurace
+- `app` - aplikacni sluzby, prihlaseni, opravneni a koordinace use-casu
+- `domain` - entity a business pravidla
+- `infra` - repository, seed data a technicke implementace
+- `static` - HTML, CSS a JavaScript frontend
 
-## Datove toky
+## Datovy tok
 
-1. Frontend vola REST endpointy pod `/api`.
-2. Controller validuje request DTO a vola `CourseService`.
-3. Service nacte entity z repository, spusti domenovou operaci a transakcne ulozi stav.
-4. Actuator poskytuje health checky a Prometheus metriky.
+```mermaid
+flowchart LR
+    Browser[Webovy prohlizec] --> Controller[REST kontroler]
+    Controller --> Service[Aplikacni sluzba]
+    Service --> Domain[Domenove entity]
+    Service --> Repository[Repository]
+    Repository --> Database[(Databaze)]
+```
+
+## Databaze
+
+Pro lokalni vyvoj lze pouzit H2. Pri behu pres Docker Compose je pouzita PostgreSQL databaze.
+
+## Bezpecnost
+
+Po prihlaseni vznikne token. Frontend ho posila v hlavicce `X-Auth-Token`. Backend podle tokenu overuje roli uzivatele a jeho opravneni k jednotlivym operacim.

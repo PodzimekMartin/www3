@@ -1,34 +1,47 @@
-# Testovaci strategie
+# Testovani a kvalita
 
-## TDD
+Projekt obsahuje automatizovane testy na nekolika urovnich.
 
-Hlavni business logika vznikala od domenovych testu:
+## Domenove testy
 
-- `CourseDomainTest` pokryva pravidla kapacity, publikace, duplicit, blokace a cekaci listiny.
-- Testy jsou psane stylem AAA: arrange, act, assert.
-- Pravidla jsou v modelu `Course`, ne v controlleru, aby sla testovat rychle bez Spring kontextu.
+Domenove testy overuji business pravidla bez webove vrstvy. Kontroluji napriklad kapacitu kurzu, cekaci listinu, validaci terminu a publikaci kurzu.
 
-## Unit testy
+Umisteni:
 
-Unit testy overuji domenovy model bez databaze a HTTP vrstvy. Jsou rychle a tvori zaklad red-green-refactor cyklu.
+- `src/test/java/cz/semester/courseapp/domain`
 
-## Integracni testy
+## Aplikacni testy
 
-`CourseControllerIntegrationTest` spousti Spring kontext, controller, service a H2 databazi. Overuje realisticke API toky vcetne chybovych odpovedi.
+Aplikacni testy overuji spolupraci sluzeb, repository a databazove vrstvy.
 
-## Test doubles
+Umisteni:
 
-`CourseServiceTest` pouziva Mockito mock pro `NotificationGateway`. Notifikace je externi hranice systemu, proto dava smysl ji v testu nahradit.
+- `src/test/java/cz/semester/courseapp/app`
 
-## BDD/ATDD
+## Integracni testy API
 
-`src/test/resources/features/course-enrollment.feature` popisuje akceptacni scenare v Gherkin stylu. `CourseEnrollmentAcceptanceTest` overuje klicovy scenar cekaci listiny.
+Integracni testy overuji REST API, autentizaci, autorizaci a databazovou integraci.
+
+Umisteni:
+
+- `src/test/java/cz/semester/courseapp/http`
 
 ## Coverage
 
-JaCoCo bezi v `mvn verify`. Nastavene quality gates:
+Pokryti testy se meri pomoci JaCoCo.
 
-- line coverage nejmene 70 %
-- branch coverage nejmene 50 %
+Spusteni:
 
-Coverage report je v CI publikovan jako artefakt `jacoco-report`.
+```bash
+mvn verify
+```
+
+Report:
+
+```text
+target/site/jacoco/index.html
+```
+
+## Staticka kontrola
+
+Soucasti buildu je Checkstyle konfigurace ve slozce `config/checkstyle`.

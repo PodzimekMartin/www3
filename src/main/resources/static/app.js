@@ -113,6 +113,24 @@ const renderStats = () => {
   const blockedStudents = state.students.length - activeStudents;
   const openSeats = state.courses.reduce((total, course) =>
     total + Math.max(course.capacity - course.enrolledCount, 0), 0);
+  if (state.session?.role === "STUDENT") {
+    const publishedCourses = state.courses.filter((course) => course.status === "PUBLISHED");
+    const ownCourses = state.courses.filter((course) => ownEnrollmentFor(course));
+    const publishedOpenSeats = publishedCourses.reduce((total, course) =>
+      total + Math.max(course.capacity - course.enrolledCount, 0), 0);
+    document.querySelector("#stats").innerHTML = [
+      ["Dostupne kurzy", publishedCourses.length, "Publikovane kurzy"],
+      ["Moje kurzy", ownCourses.length, "Zapsano nebo cekaci listina"],
+      ["Volna mista", publishedOpenSeats, "V publikovanych kurzech"],
+    ].map(([label, value, detail]) => `
+      <article class="stat-card">
+        <span>${label}</span>
+        <strong>${value}</strong>
+        <p>${detail}</p>
+      </article>
+    `).join("");
+    return;
+  }
   const cards = [
     ["Kurzy", state.courses.length, `${published} publikovano, ${drafts} konceptu`],
     ["Volna mista", openSeats, "Napric kurzy"],
@@ -205,22 +223,77 @@ const renderCourses = () => {
   const courses = filteredCourses();
   document.querySelector("#courseResultCount").textContent = resultCount(courses.length, state.courses.length);
   if (courses.length === 0) {
-    container.innerHTML = emptyState("Zadny kurz", "Zmen filtr nebo vytvor novy kurz s terminem.");
+    container.innerHTML = emptyState(
+      state.session?.role === "INSTRUCTOR" ? "Zatim nemas zadny kurz" : "Zadny kurz",
+      state.session?.role === "INSTRUCTOR"
+        ? "Vytvor prvni kurz vlevo a pridej mu alespon jeden termin."
+        : "Zmen filtr nebo vytvor novy kurz s terminem.",
+    );
+    return;
+  }
+  if (state.session?.role === "STUDENT") {
+    renderStudentCourseGroups(container, courses);
     return;
   }
   courses.forEach((course) => {
-    const expanded = state.expandedCourseIds.has(course.id);
-    const article = document.createElement("article");
-    article.className = `course${expanded ? " expanded" : ""}`;
-    article.innerHTML = `
+    container.append(renderCourseCard(course));
+  });
+};
+
+const renderStudentCourseGroups = (container, courses) => {
+  const publishedCourses = courses.filter((course) => course.status === "PUBLISHED");
+  const ownCourses = courses.filter((course) => ownEnrollmentFor(course));
+  container.append(renderCourseGroup(
+    "Vsechny kurzy",
+    "Publikovane kurzy, na ktere se muzes prihlasit.",
+    publishedCourses,
+    "Ted neni otevreny zadny kurz.",
+  ));
+  container.append(renderCourseGroup(
+    "Moje kurzy",
+    "Kurzy, kde jsi zapsany nebo cekas na misto.",
+    ownCourses,
+    "Zatim nejsi zapsany na zadny kurz.",
+  ));
+};
+
+const renderCourseGroup = (title, text, courses, emptyText) => {
+  const section = document.createElement("section");
+  section.className = "course-group";
+  section.innerHTML = `
+    <div class="course-group-head">
+      <div>
+        <h3>${title}</h3>
+        <p class="muted">${text}</p>
+      </div>
+      <span class="group-count">${courses.length}</span>
+    </div>
+  `;
+  const list = document.createElement("div");
+  list.className = "course-group-list";
+  if (courses.length === 0) {
+    list.innerHTML = emptyState(title, emptyText);
+  } else {
+    courses.forEach((course) => list.append(renderCourseCard(course)));
+  }
+  section.append(list);
+  return section;
+};
+
+const renderCourseCard = (course) => {
+  const expanded = state.expandedCourseIds.has(course.id);
+  const article = document.createElement("article");
+  article.className = `course${expanded ? " expanded" : ""}`;
+  article.innerHTML = `
       <button class="course-summary" type="button" data-toggle-course="${course.id}" aria-expanded="${expanded}">
         <span class="chevron" aria-hidden="true">›</span>
         <span class="course-summary-main">
           <strong>${escapeHtml(course.title)}</strong>
           <span>Vyucujici: ${escapeHtml(course.instructorName || "Neprirazeno")}</span>
         </span>
-        <span class="badge ${course.status === "PUBLISHED" ? "published" : "draft"}">
-          ${course.status === "PUBLISHED" ? "Publikovano" : "Koncept"}
+        <span class="course-chips">
+          ${publicationBadge(course)}
+          ${capacityBadge(course)}
         </span>
       </button>
       <div class="course-details ${expanded ? "" : "hidden"}">
@@ -262,8 +335,23 @@ const renderCourses = () => {
         </div>
       </div>
     `;
-    container.append(article);
-  });
+  return article;
+};
+
+const publicationBadge = (course) => `
+  <span class="badge ${course.status === "PUBLISHED" ? "published" : "draft"}">
+    ${course.status === "PUBLISHED" ? "Publikovano" : "Koncept"}
+  </span>
+`;
+
+const capacityBadge = (course) => {
+  if (course.enrolledCount < course.capacity) {
+    return `<span class="badge open">Volno ${course.capacity - course.enrolledCount}</span>`;
+  }
+  if (course.waitlistCount > 0) {
+    return `<span class="badge wait">Ceka ${course.waitlistCount}</span>`;
+  }
+  return `<span class="badge full">Plno</span>`;
 };
 
 const renderSessions = (sessions) => {
@@ -429,6 +517,20 @@ const emptyState = (title, text) => `
   </div>
 `;
 
+const setFormMessage = (form, message, type = "error") => {
+  let messageElement = form.querySelector(".form-message");
+  if (!messageElement) {
+    messageElement = document.createElement("p");
+    form.append(messageElement);
+  }
+  messageElement.className = `form-message ${type}`;
+  messageElement.textContent = message;
+};
+
+const clearFormMessage = (form) => {
+  form?.querySelector(".form-message")?.remove();
+};
+
 const openCourseDetail = (courseId) => {
   const course = state.courses.find((item) => item.id === Number(courseId));
   if (!course) {
@@ -468,6 +570,7 @@ const escapeHtml = (value) => String(value)
 const loginForm = document.querySelector("#loginForm");
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  clearFormMessage(event.currentTarget);
   const form = new FormData(event.currentTarget);
   await handle(async () => {
     state.session = await api("/api/auth/login", {
@@ -476,7 +579,7 @@ loginForm.addEventListener("submit", async (event) => {
     });
     window.localStorage.setItem("courseSession", JSON.stringify(state.session));
     await loadState();
-  }, "Prihlaseni probehlo.");
+  }, "Prihlaseni probehlo.", event.submitter, event.currentTarget);
 });
 
 document.querySelector("#logoutButton").addEventListener("click", () => {
@@ -490,30 +593,37 @@ document.querySelector("#logoutButton").addEventListener("click", () => {
 
 document.querySelector("#studentForm").addEventListener("submit", async (event) => {
   event.preventDefault();
+  clearFormMessage(event.currentTarget);
   const form = new FormData(event.currentTarget);
-  await handle(() => api("/api/students", {
+  const saved = await handle(() => api("/api/students", {
     method: "POST",
     body: JSON.stringify({ name: form.get("name"), email: form.get("email") }),
-  }), "Student vytvoren.");
-  event.currentTarget.reset();
+  }), "Student vytvoren.", event.submitter, event.currentTarget);
+  if (saved) {
+    event.currentTarget.reset();
+  }
 });
 
 document.querySelector("#instructorForm").addEventListener("submit", async (event) => {
   event.preventDefault();
+  clearFormMessage(event.currentTarget);
   const form = new FormData(event.currentTarget);
-  await handle(() => api("/api/instructors", {
+  const saved = await handle(() => api("/api/instructors", {
     method: "POST",
     body: JSON.stringify({ name: form.get("name"), email: form.get("email") }),
-  }), "Vyucujici vytvoren.");
-  event.currentTarget.reset();
+  }), "Vyucujici vytvoren.", event.submitter, event.currentTarget);
+  if (saved) {
+    event.currentTarget.reset();
+  }
 });
 
 document.querySelector("#courseForm").addEventListener("submit", async (event) => {
   event.preventDefault();
+  clearFormMessage(event.currentTarget);
   const submitButton = event.submitter;
   const shouldPublish = submitButton?.value === "publish";
   const form = new FormData(event.currentTarget);
-  await handle(async () => {
+  const saved = await handle(async () => {
     const payload = { title: form.get("title"), capacity: Number(form.get("capacity")) };
     if (state.session.role === "ADMIN") {
       if (!form.get("instructorId")) {
@@ -538,9 +648,11 @@ document.querySelector("#courseForm").addEventListener("submit", async (event) =
     if (shouldPublish) {
       await api(`/api/courses/${course.id}/publish`, { method: "POST" });
     }
-  }, shouldPublish ? "Kurz vytvoren a publikovan." : "Koncept kurzu vytvoren.", submitButton);
-  event.currentTarget.reset();
-  resetCourseSessionRows();
+  }, shouldPublish ? "Kurz vytvoren a publikovan." : "Koncept kurzu vytvoren.", submitButton, event.currentTarget);
+  if (saved) {
+    event.currentTarget.reset();
+    resetCourseSessionRows();
+  }
 });
 
 document.querySelector("#addCourseSessionButton").addEventListener("click", () => addCourseSessionRow());
@@ -701,23 +813,29 @@ const formatTime = (value) => new Intl.DateTimeFormat("cs-CZ", {
   timeStyle: "short",
 }).format(new Date(value));
 
-const handle = async (action, successMessage, button = null) => {
+const handle = async (action, successMessage, button = null, form = null) => {
   try {
     if (button) {
       button.disabled = true;
     }
     await action();
+    clearFormMessage(form);
     showToast(successMessage);
     if (state.session) {
       await loadState();
     }
+    return true;
   } catch (error) {
     if (error.message.includes("vyprselo") || error.message.includes("Nejprve")) {
       state.session = null;
       window.localStorage.removeItem("courseSession");
       render();
     }
+    if (form) {
+      setFormMessage(form, error.message);
+    }
     showToast(error.message);
+    return false;
   } finally {
     if (button) {
       button.disabled = false;

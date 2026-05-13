@@ -1,23 +1,29 @@
-# Git workflow
+# Prace s Gitem
 
-## Vetve
+Projekt je veden v Git repozitari s prubeznymi commity. Commit zpravy pouzivaji kratke popisne prefixy.
 
-- `main` reprezentuje stabilni stav.
-- `feature/*` slouzi pro nove funkcionality.
-- `hotfix/*` slouzi pro rychle opravy produkcni chyby.
-- `codex/semester-course-devops` je aktualni pracovni vetev semestralni prace.
+## Doporuceny workflow
 
-## Commit styl
+- `main` - stabilni hlavni vetev
+- `feature/...` - vetev pro novou funkcionalitu
+- `fix/...` - vetev pro opravu chyby
 
-Projekt pouziva conventional commits:
+## Typy commitu
 
 - `feat:` nova funkcionalita
-- `test:` testy nebo akceptacni scenare
-- `refactor:` zmena struktury bez zmeny chovani
-- `ci:` pipeline
+- `fix:` oprava chyby
 - `docs:` dokumentace
-- `chore:` infrastruktura a udrzba
+- `test:` testy
+- `style:` vzhled nebo formatovani
+- `chore:` technicka udrzba
 
-## TDD historie
+## Prace s vetvemi
 
-V historii jsou oddelene commity pro domenovy model, testy domeny, service test s mockem, integracni API test a acceptance scenar. Pri obhajobe je mozne ukazat, jak testy dokumentuji pravidla a chrani refaktoring.
+```bash
+git switch -c feature/nazev-upravy
+git add .
+git commit -m "feat: popis zmeny"
+git push
+```
+
+Po dokonceni zmeny je vhodne vytvorit pull request a nechat projit CI pipeline.
