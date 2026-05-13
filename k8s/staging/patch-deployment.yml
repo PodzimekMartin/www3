@@ -8,4 +8,4 @@ spec:
     spec:
       containers:
         - name: app
-          image: ghcr.io/example/course-reservations:staging
+          image: ghcr.io/podzimekmartin/coursereservations:staging

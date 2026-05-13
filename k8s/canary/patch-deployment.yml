@@ -8,7 +8,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: ghcr.io/example/course-reservations:canary
+          image: ghcr.io/podzimekmartin/coursereservations:canary
           resources:
             requests:
               cpu: 100m

@@ -49,7 +49,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/course-reservations
+          images: ghcr.io/${{ github.repository_owner }}/coursereservations
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
