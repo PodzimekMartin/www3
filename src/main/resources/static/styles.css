@@ -298,19 +298,26 @@ button.danger {
     grid-template-columns: minmax(180px, 1fr);
 }
 
-.courses,
 .students {
     display: grid;
     gap: 12px;
     margin-top: 14px;
 }
 
+.courses {
+    display: grid;
+    gap: 24px;
+    margin-top: 18px;
+}
+
 .course {
-    border: 1px solid var(--line);
+    background: #ffffff;
+    border: 1px solid #cfd9e3;
     border-radius: 8px;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
     display: grid;
     gap: 14px;
-    padding: 16px;
+    padding: 18px;
 }
 
 .empty-state {
