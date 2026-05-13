@@ -316,8 +316,9 @@ button.danger {
     border-radius: 8px;
     box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
     display: grid;
-    gap: 14px;
-    padding: 18px;
+    gap: 0;
+    overflow: hidden;
+    padding: 0;
 }
 
 .empty-state {
@@ -334,17 +335,77 @@ button.danger {
     color: var(--ink);
 }
 
-.course-header {
-    align-items: start;
-    border-bottom: 1px solid var(--line);
-    display: flex;
-    gap: 10px;
-    justify-content: space-between;
-    padding-bottom: 12px;
+.course-summary {
+    align-items: center;
+    background: #ffffff;
+    border-radius: 0;
+    color: var(--ink);
+    display: grid;
+    gap: 12px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    justify-items: start;
+    min-height: 76px;
+    padding: 16px 18px;
+    text-align: left;
+    width: 100%;
 }
 
-.course-header h3 {
-    font-size: 1.08rem;
+.course-summary:hover {
+    background: #f8fafc;
+}
+
+.course-summary:focus-visible {
+    outline: 3px solid rgba(47, 112, 148, 0.25);
+    outline-offset: -3px;
+}
+
+.course-summary-main {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.course-summary-main strong {
+    font-size: 1.04rem;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.course-summary-main span {
+    color: var(--muted);
+    font-size: 0.9rem;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chevron {
+    align-items: center;
+    background: #eef5f9;
+    border-radius: 999px;
+    color: var(--primary);
+    display: inline-flex;
+    font-size: 1.45rem;
+    font-weight: 900;
+    height: 32px;
+    justify-content: center;
+    line-height: 1;
+    transition: transform 0.16s ease;
+    width: 32px;
+}
+
+.course.expanded .chevron {
+    transform: rotate(90deg);
+}
+
+.course-details {
+    border-top: 1px solid var(--line);
+    display: grid;
+    gap: 14px;
+    padding: 16px 18px 18px;
 }
 
 .course-facts {
@@ -663,5 +724,13 @@ button.danger {
     .action-group,
     .form-actions {
         grid-template-columns: 1fr;
+    }
+
+    .course-summary {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .course-summary .badge {
+        grid-column: 2;
     }
 }

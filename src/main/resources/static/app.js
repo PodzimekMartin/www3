@@ -11,6 +11,7 @@ const state = {
     studentStatus: "ALL",
     instructorSearch: "",
   },
+  expandedCourseIds: new Set(),
   pendingDeleteCourseId: null,
   session: JSON.parse(window.localStorage.getItem("courseSession") || "null"),
 };
@@ -44,6 +45,8 @@ const loadState = async () => {
   state.students = nextState.students;
   state.instructors = nextState.instructors;
   state.courses = nextState.courses;
+  state.expandedCourseIds = new Set([...state.expandedCourseIds]
+    .filter((id) => state.courses.some((course) => course.id === id)));
   render();
 };
 
@@ -202,53 +205,57 @@ const renderCourses = () => {
     return;
   }
   courses.forEach((course) => {
+    const expanded = state.expandedCourseIds.has(course.id);
     const article = document.createElement("article");
-    article.className = "course";
+    article.className = `course${expanded ? " expanded" : ""}`;
     article.innerHTML = `
-      <div class="course-header">
-        <div>
-          <h3>${escapeHtml(course.title)}</h3>
-          <p class="muted">Vyucujici: ${escapeHtml(course.instructorName || "Neprirazeno")}</p>
-        </div>
+      <button class="course-summary" type="button" data-toggle-course="${course.id}" aria-expanded="${expanded}">
+        <span class="chevron" aria-hidden="true">›</span>
+        <span class="course-summary-main">
+          <strong>${escapeHtml(course.title)}</strong>
+          <span>Vyucujici: ${escapeHtml(course.instructorName || "Neprirazeno")}</span>
+        </span>
         <span class="badge ${course.status === "PUBLISHED" ? "published" : "draft"}">
           ${course.status === "PUBLISHED" ? "Publikovano" : "Koncept"}
         </span>
-      </div>
-      <div class="course-facts">
-        <div>
-          <span>Zapsano</span>
-          <strong>${course.enrolledCount}/${course.capacity}</strong>
+      </button>
+      <div class="course-details ${expanded ? "" : "hidden"}">
+        <div class="course-facts">
+          <div>
+            <span>Zapsano</span>
+            <strong>${course.enrolledCount}/${course.capacity}</strong>
+          </div>
+          <div>
+            <span>Cekaci listina</span>
+            <strong>${course.waitlistCount}</strong>
+          </div>
+          <div>
+            <span>Terminy</span>
+            <strong>${course.sessions.length}</strong>
+          </div>
+          <div>
+            <span>Volna mista</span>
+            <strong>${Math.max(course.capacity - course.enrolledCount, 0)}</strong>
+          </div>
         </div>
-        <div>
-          <span>Cekaci listina</span>
-          <strong>${course.waitlistCount}</strong>
+        <div class="course-section">
+          <div class="course-section-title">
+            <h4>Terminy</h4>
+            <span>${course.sessions.length === 0 ? "Bez terminu" : `${course.sessions.length} planovano`}</span>
+          </div>
+          ${renderSessions(course.sessions)}
         </div>
-        <div>
-          <span>Terminy</span>
-          <strong>${course.sessions.length}</strong>
+        ${isCourseManager()
+          ? renderCourseManagerActions(course)
+          : renderStudentCourseActions(course)}
+        <div class="course-section">
+          <div class="course-section-title">
+            <h4>Zapsani studenti</h4>
+            <span>${course.enrollments.length} zaznamu</span>
+          </div>
+          ${course.enrollments.map((enrollment) => renderEnrollment(course, enrollment)).join("")}
+          ${course.enrollments.length === 0 ? `<p class="muted spacing">Zatim bez zapisu.</p>` : ""}
         </div>
-        <div>
-          <span>Volna mista</span>
-          <strong>${Math.max(course.capacity - course.enrolledCount, 0)}</strong>
-        </div>
-      </div>
-      <div class="course-section">
-        <div class="course-section-title">
-          <h4>Terminy</h4>
-          <span>${course.sessions.length === 0 ? "Bez terminu" : `${course.sessions.length} planovano`}</span>
-        </div>
-        ${renderSessions(course.sessions)}
-      </div>
-      ${isCourseManager()
-        ? renderCourseManagerActions(course)
-        : renderStudentCourseActions(course)}
-      <div class="course-section">
-        <div class="course-section-title">
-          <h4>Zapsani studenti</h4>
-          <span>${course.enrollments.length} zaznamu</span>
-        </div>
-        ${course.enrollments.map((enrollment) => renderEnrollment(course, enrollment)).join("")}
-        ${course.enrollments.length === 0 ? `<p class="muted spacing">Zatim bez zapisu.</p>` : ""}
       </div>
     `;
     container.append(article);
@@ -620,6 +627,17 @@ document.querySelector("#instructorSearch").addEventListener("input", (event) =>
 });
 
 const routeAction = async (target) => {
+  const courseToggle = target.closest("[data-toggle-course]");
+  if (courseToggle) {
+    const courseId = Number(courseToggle.dataset.toggleCourse);
+    if (state.expandedCourseIds.has(courseId)) {
+      state.expandedCourseIds.delete(courseId);
+    } else {
+      state.expandedCourseIds.add(courseId);
+    }
+    renderCourses();
+    return;
+  }
   if (target.dataset.viewCourseDetail) {
     openCourseDetail(target.dataset.viewCourseDetail);
     return;
