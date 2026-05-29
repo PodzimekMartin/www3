@@ -72,6 +72,32 @@ class CourseControllerIntegrationTest {
     }
 
     @Test
+    void jwtTokenCanAuthorizeBearerRequest() throws Exception {
+        String token = adminToken();
+
+        mockMvc.perform(get("/api/state")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void coursesCanBeSearchedWithPaging() throws Exception {
+        createCourse("Advanced Java", 3);
+        createCourse("DevOps Basics", 2);
+
+        mockMvc.perform(get("/api/courses/search")
+                        .header("Authorization", "Bearer " + adminToken())
+                        .param("query", "java")
+                        .param("page", "0")
+                        .param("size", "5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].title").value("Advanced Java"))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
     void studentCannotCreateCourse() throws Exception {
         createStudent("Security Student", "security-http@example.test");
 
@@ -107,7 +133,7 @@ class CourseControllerIntegrationTest {
                         .header(AUTH_HEADER, teacherToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"startsAt": "2026-05-04T10:00:00", "endsAt": "2026-05-04T12:00:00"}
+                                {"startsAt": "2027-05-04T10:00:00", "endsAt": "2027-05-04T12:00:00"}
                                 """))
                 .andExpect(status().isOk());
     }
@@ -182,7 +208,8 @@ class CourseControllerIntegrationTest {
     }
 
     private long createCourse(String title, int capacity) throws Exception {
-        long instructor = createInstructor("Default Teacher", "default-teacher@example.test");
+        String suffix = Long.toString(System.nanoTime());
+        long instructor = createInstructor("Default Teacher", "default-teacher-" + suffix + "@example.test");
         String response = mockMvc.perform(post("/api/courses")
                         .header(AUTH_HEADER, adminToken())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -201,7 +228,7 @@ class CourseControllerIntegrationTest {
                         .header(AUTH_HEADER, adminToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"startsAt": "2026-05-04T10:00:00", "endsAt": "2026-05-04T12:00:00"}
+                                {"startsAt": "2027-05-04T10:00:00", "endsAt": "2027-05-04T12:00:00"}
                                 """))
                 .andExpect(status().isOk());
     }
@@ -233,7 +260,9 @@ class CourseControllerIntegrationTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
-        return JsonTestSupport.tokenFrom(response);
+        String token = JsonTestSupport.tokenFrom(response);
+        org.assertj.core.api.Assertions.assertThat(token.split("\\.")).hasSize(3);
+        return token;
     }
 
     private String loginInstructor(String email) throws Exception {

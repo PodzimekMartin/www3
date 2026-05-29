@@ -5,6 +5,7 @@ Semestralni aplikace pro spravu vyskolskych kurzu, vyucujicich, studentu, termin
 ## Hlavni funkce
 
 - prihlaseni podle role: administrator, vyucujici, student
+- zabezpecene REST API pres podepsany JWT Bearer token
 - sprava studentu vcetne blokace uctu
 - sprava vyucujicich
 - tvorba kurzu s kapacitou, terminem a prirazenym vyucujicim
@@ -14,6 +15,9 @@ Semestralni aplikace pro spravu vyskolskych kurzu, vyucujicich, studentu, termin
 - automaticky presun prvniho cekatele po uvolneni mista
 - prehledne studentske rozdeleni na dostupne kurzy a moje kurzy
 - REST API dostupne pres Swagger UI
+- vyhledavani kurzu podle nazvu nebo vyucujiciho se strankovanim
+- jednotny format chybovych odpovedi API
+- logovani API pozadavku, validacnich chyb a domenovych konfliktu
 - Docker Compose pro lokalni spusteni aplikace s PostgreSQL
 - Kubernetes manifesty pro staging a production prostredi
 
@@ -50,6 +54,87 @@ Po spusteni aplikace jsou k dispozici ukazkove ucty:
 - Kapacita kurzu nesmi byt snizena pod aktualni pocet zapsanych studentu.
 - Vyucujici muze spravovat pouze svoje kurzy.
 - Student muze vytvaret nebo rusit pouze svuj vlastni zapis.
+
+## Architektura backendu
+
+Aplikace je rozdelena do vrstev:
+
+- `domain` - entity a domenova pravidla (`Course`, `Student`, `Instructor`, `Enrollment`, `CourseSession`)
+- `app` - service vrstva s hlavni business logikou (`CourseService`, `AuthSessionService`, `JwtTokenService`)
+- `infra` - repository/DAO vrstva a technicke integrace (`CourseRepository`, `StudentRepository`, `InstructorRepository`)
+- `http` - REST controllery, DTO, validace, error handling a OpenAPI konfigurace
+- `config` a `resources` - konfigurace aplikace, databaze, profilu a statickeho weboveho rozhrani
+
+Ucelena funkcni vetev pro obhajobu je sprava kurzu a zapisu: entita `Course` a souvisejici entity, repository dotazy, service pravidla, REST endpointy, DTO, validace, logovani a automatizovane testy.
+
+## Zabezpeceni API
+
+Aplikace pouziva Spring Security. Backend je nastaveny jako stateless REST API, takze nevytvari serverovou session a kazdy zabezpeceny pozadavek se overuje pomoci JWT tokenu.
+
+Prihlaseni probiha pres endpoint `POST /api/auth/login`. Hesla se overuji pres `BCryptPasswordEncoder`, nejsou porovnavana jako plaintext. Po uspesnem prihlaseni aplikace vrati podepsany JWT token. Klient ho posila v hlavicce:
+
+```http
+Authorization: Bearer <token>
+```
+
+Role:
+
+- `ADMIN` muze spravovat studenty, vyucujici a vsechny kurzy
+- `INSTRUCTOR` muze spravovat pouze svoje kurzy
+- `STUDENT` vidi publikovane kurzy a muze spravovat pouze svoje zapisy
+
+Bezpecnostni pravidla jsou rozdělena do dvou urovni:
+
+- `SecurityConfig` chrani endpointy podle role jeste pred vstupem do controlleru
+- `AuthSessionService` resi jemnejsi vlastnicke kontroly, napr. ze vyucujici smi spravovat jen svoje kurzy a student jen svoje zapisy
+
+JWT tokeny nacita `JwtAuthenticationFilter`, ktery z nich vytvari Spring Security autentizaci s roli `ROLE_ADMIN`, `ROLE_INSTRUCTOR` nebo `ROLE_STUDENT`. Neplatny nebo chybejici token vede na odpoved `401`, nedostatecna role na `403`.
+
+Tajny klic pro JWT se bere z promenne prostredi `APP_JWT_SECRET`, aby nemusel byt pevne ulozeny ve zdrojovem kodu. Aplikace ma nastavene zakladni CORS pravidlo pro lokalni webove rozhrani a vypnutou CSRF ochranu, protoze jde o stateless REST API s Bearer tokenem, ne cookie session aplikaci.
+
+## Databaze a dotazy
+
+Projekt pouziva Spring Data JPA. Lokalne bez Dockeru bezi H2 databaze, v Docker Compose se pouziva PostgreSQL.
+
+CRUD operace jsou dostupne pro studenty, vyucujici, kurzy, terminy a zapisy. Slozitejsi dotaz je v `CourseRepository.searchCourses`, kde se hleda pres kurz i prirazeneho vyucujiciho a vysledek je strankovany.
+
+Priklad:
+
+```http
+GET /api/courses/search?query=java&page=0&size=5
+```
+
+## Validace a chybove odpovedi
+
+Vstupy se validuji pomoci Jakarta Validation anotaci a vlastni validace `@ValidSessionWindow`, ktera hlida, aby konec terminu kurzu byl po zacatku.
+
+Chyby API vraci jednotny JSON format:
+
+```json
+{
+  "message": "Popis chyby",
+  "status": 400
+}
+```
+
+## Logovani a monitoring
+
+API pozadavky loguje `ApiRequestLoggingFilter`. Domenove chyby, validacni chyby a zakazane akce loguje `ApiExceptionHandler`.
+
+Monitoring je dostupny pres Spring Boot Actuator:
+
+- health check: `http://localhost:8080/actuator/health`
+- metriky: `http://localhost:8080/actuator/metrics`
+
+## API dokumentace
+
+Swagger UI je dostupny po spusteni aplikace:
+
+```text
+http://localhost:8080/swagger-ui/index.html
+```
+
+OpenAPI definice obsahuje Bearer JWT zabezpeceni, takze ve Swaggeru lze vlozit token pres tlacitko Authorize.
 
 ## Spusteni pres Docker
 
@@ -89,6 +174,13 @@ Vystupy:
 
 - test reporty: `target/surefire-reports`
 - coverage report: `target/site/jacoco/index.html`
+
+Testovana funkcnost pokryva zejmena:
+
+- domenova pravidla zapisu a cekaci listiny
+- service vrstvu s mockovanou notifikacni branou
+- REST API vcetne autorizace, validace, JWT a vyhledavani
+- acceptance scenar prihlaseni studentu do kurzu
 
 ## CI/CD
 

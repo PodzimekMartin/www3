@@ -25,3 +25,6 @@ management:
 
 app:
   seed-data: true
+  security:
+    jwt-secret: ${APP_JWT_SECRET:local-development-secret-change-me}
+    jwt-expiration-seconds: 7200

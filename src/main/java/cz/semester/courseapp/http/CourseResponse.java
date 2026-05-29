@@ -3,6 +3,7 @@ package cz.semester.courseapp.http;
 import cz.semester.courseapp.domain.Course;
 import cz.semester.courseapp.domain.CourseStatus;
 import cz.semester.courseapp.domain.Enrollment;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 
@@ -16,10 +17,13 @@ record CourseResponse(
         String instructorEmail,
         long enrolledCount,
         long waitlistCount,
+        boolean bookable,
+        boolean finished,
         List<SessionResponse> sessions,
         List<EnrollmentResponse> enrollments) {
 
     static CourseResponse from(Course course) {
+        LocalDateTime now = LocalDateTime.now();
         return new CourseResponse(
                 course.getId(),
                 course.getTitle(),
@@ -30,6 +34,8 @@ record CourseResponse(
                 course.getInstructor() == null ? "" : course.getInstructor().getEmail(),
                 course.activeEnrollmentCount(),
                 course.waitlistCount(),
+                course.isBookable(now),
+                course.isFinished(now),
                 course.getSessions().stream().map(SessionResponse::from).toList(),
                 course.getEnrollments().stream()
                         .sorted(Comparator.comparing(Enrollment::getCreatedAt))

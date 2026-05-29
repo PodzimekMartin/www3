@@ -19,7 +19,7 @@ const state = {
 const api = async (path, options = {}) => {
   const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
   if (state.session?.token) {
-    headers["X-Auth-Token"] = state.session.token;
+    headers.Authorization = `Bearer ${state.session.token}`;
   }
   const response = await fetch(path, { headers, ...options });
   const body = await response.json().catch(() => ({}));
@@ -119,11 +119,12 @@ const renderStats = () => {
     const publishedOpenSeats = publishedCourses.reduce((total, course) =>
       total + Math.max(course.capacity - course.enrolledCount, 0), 0);
     document.querySelector("#stats").innerHTML = [
-      ["Dostupne kurzy", publishedCourses.length, "Publikovane kurzy"],
-      ["Moje kurzy", ownCourses.length, "Zapsano nebo cekaci listina"],
-      ["Volna mista", publishedOpenSeats, "V publikovanych kurzech"],
-    ].map(([label, value, detail]) => `
+      ["K", "Dostupne kurzy", publishedCourses.length, "Publikovane kurzy"],
+      ["M", "Moje kurzy", ownCourses.length, "Zapsano nebo cekaci listina"],
+      ["V", "Volna mista", publishedOpenSeats, "V publikovanych kurzech"],
+    ].map(([icon, label, value, detail]) => `
       <article class="stat-card">
+        <span class="stat-icon">${icon}</span>
         <span>${label}</span>
         <strong>${value}</strong>
         <p>${detail}</p>
@@ -132,17 +133,18 @@ const renderStats = () => {
     return;
   }
   const cards = [
-    ["Kurzy", state.courses.length, `${published} publikovano, ${drafts} konceptu`],
-    ["Volna mista", openSeats, "Napric kurzy"],
+    ["K", "Kurzy", state.courses.length, `${published} publikovano, ${drafts} konceptu`],
+    ["V", "Volna mista", openSeats, "Napric kurzy"],
   ];
   if (state.session?.role !== "STUDENT") {
-    cards.push(["Studenti", state.students.length, `${activeStudents} aktivni, ${blockedStudents} blokovani`]);
+    cards.push(["S", "Studenti", state.students.length, `${activeStudents} aktivni, ${blockedStudents} blokovani`]);
   }
   if (state.session?.role === "ADMIN") {
-    cards.push(["Vyucujici", state.instructors.length, "Prirazeni ke kurzum"]);
+    cards.push(["U", "Vyucujici", state.instructors.length, "Prirazeni ke kurzum"]);
   }
-  document.querySelector("#stats").innerHTML = cards.map(([label, value, detail]) => `
+  document.querySelector("#stats").innerHTML = cards.map(([icon, label, value, detail]) => `
     <article class="stat-card">
+      <span class="stat-icon">${icon}</span>
       <span>${label}</span>
       <strong>${value}</strong>
       <p>${detail}</p>
@@ -241,7 +243,7 @@ const renderCourses = () => {
 };
 
 const renderStudentCourseGroups = (container, courses) => {
-  const publishedCourses = courses.filter((course) => course.status === "PUBLISHED");
+  const publishedCourses = courses.filter((course) => course.status === "PUBLISHED" && course.bookable);
   const ownCourses = courses.filter((course) => ownEnrollmentFor(course));
   container.append(renderCourseGroup(
     "Vsechny kurzy",
@@ -339,12 +341,15 @@ const renderCourseCard = (course) => {
 };
 
 const publicationBadge = (course) => `
-  <span class="badge ${course.status === "PUBLISHED" ? "published" : "draft"}">
-    ${course.status === "PUBLISHED" ? "Publikovano" : "Koncept"}
+  <span class="badge ${course.finished ? "archived" : course.status === "PUBLISHED" ? "published" : "draft"}">
+    ${course.finished ? "Probehl" : course.status === "PUBLISHED" ? "Publikovano" : "Koncept"}
   </span>
 `;
 
 const capacityBadge = (course) => {
+  if (!course.bookable && course.status === "PUBLISHED") {
+    return `<span class="badge archived">Uzavreno</span>`;
+  }
   if (course.enrolledCount < course.capacity) {
     return `<span class="badge open">Volno ${course.capacity - course.enrolledCount}</span>`;
   }
@@ -444,6 +449,14 @@ const renderStudentCourseActions = (course) => {
           ${ownEnrollment.status === "WAITLISTED" ? "Jsi na cekaci listine" : "Jsi zapsany"}
         </span>
         <button class="danger" data-cancel="${course.id}:${state.session.studentId}">Zrusit muj zapis</button>
+      </div>
+    `;
+  }
+  if (!course.bookable) {
+    return `
+      <div class="student-actions">
+        <button class="secondary" data-view-course-detail="${course.id}">Detail kurzu</button>
+        <span class="status muted-status">Termin kurzu uz probehl</span>
       </div>
     `;
   }
@@ -667,18 +680,30 @@ document.addEventListener("click", async (event) => {
     render();
     return;
   }
-  if (target.dataset.closeModal || target.classList.contains("modal")) {
+  if ("closeModal" in target.dataset || target.classList.contains("modal")) {
     closeModals();
     return;
   }
-  if (target.dataset.cancelConfirm) {
+  if ("cancelConfirm" in target.dataset) {
     closeModals();
     return;
   }
-  if (target.dataset.confirmDelete) {
+  if ("confirmDelete" in target.dataset) {
     const courseId = state.pendingDeleteCourseId;
-    closeModals();
-    await handle(() => api(`/api/courses/${courseId}`, { method: "DELETE" }), "Kurz zrusen.", target);
+    if (!courseId) {
+      closeModals();
+      showToast("Kurz uz neni vybrany.");
+      return;
+    }
+    const deleted = await handle(
+      () => api(`/api/courses/${courseId}`, { method: "DELETE" }),
+      "Kurz zrusen.",
+      target,
+    );
+    if (deleted) {
+      state.expandedCourseIds.delete(courseId);
+      closeModals();
+    }
     return;
   }
   await routeAction(target);

@@ -10,6 +10,8 @@ import cz.semester.courseapp.infra.InstructorRepository;
 import cz.semester.courseapp.infra.StudentRepository;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -89,6 +91,12 @@ public class CourseService {
 
     public void deleteCourse(Long courseId) {
         courseRepository.delete(course(courseId));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Course> searchCourses(String query, cz.semester.courseapp.domain.CourseStatus status, Pageable pageable) {
+        String normalizedQuery = query == null || query.isBlank() ? null : query.trim();
+        return courseRepository.searchCourses(normalizedQuery, status, pageable);
     }
 
     public Student setBlocked(Long studentId, boolean blocked) {

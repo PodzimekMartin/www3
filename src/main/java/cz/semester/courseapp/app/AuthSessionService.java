@@ -1,18 +1,16 @@
 package cz.semester.courseapp.app;
 
 import cz.semester.courseapp.domain.Course;
-import cz.semester.courseapp.domain.CourseStatus;
 import cz.semester.courseapp.domain.Instructor;
 import cz.semester.courseapp.domain.Student;
 import cz.semester.courseapp.infra.CourseRepository;
 import cz.semester.courseapp.infra.InstructorRepository;
 import cz.semester.courseapp.infra.StudentRepository;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -20,37 +18,45 @@ import org.springframework.web.server.ResponseStatusException;
 public class AuthSessionService {
 
     private static final String ADMIN_USERNAME = "admin";
-    private static final String ADMIN_PASSWORD = "admin123";
-    private static final String STUDENT_PASSWORD = "student123";
-    private static final String INSTRUCTOR_PASSWORD = "teacher123";
+    private static final String ADMIN_PASSWORD_HASH =
+            "$2a$10$mYFKpPFSEWHb7kpG678ytOQagCd/FJdKJq4n1NkgU0B2OgDXSP8ia";
+    private static final String STUDENT_PASSWORD_HASH =
+            "$2a$10$tZQfPtUr8nAqpcRFS4lmM.542wGlvPezSSRUOEnEYYJ0Un6R1FmRe";
+    private static final String INSTRUCTOR_PASSWORD_HASH =
+            "$2a$10$9auy09mOGvEccB5U.EFBbum7WR66sqVU31cFlbFP2YI8ql969ZMNC";
 
     private final StudentRepository studentRepository;
     private final InstructorRepository instructorRepository;
     private final CourseRepository courseRepository;
-    private final ConcurrentMap<String, UserSession> sessions = new ConcurrentHashMap<>();
+    private final JwtTokenService jwtTokenService;
+    private final PasswordEncoder passwordEncoder;
 
     public AuthSessionService(
             StudentRepository studentRepository,
             InstructorRepository instructorRepository,
-            CourseRepository courseRepository) {
+            CourseRepository courseRepository,
+            JwtTokenService jwtTokenService,
+            PasswordEncoder passwordEncoder) {
         this.studentRepository = studentRepository;
         this.instructorRepository = instructorRepository;
         this.courseRepository = courseRepository;
+        this.jwtTokenService = jwtTokenService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public UserSession login(String username, String password) {
         String normalizedUsername = username == null ? "" : username.trim().toLowerCase(Locale.ROOT);
-        if (ADMIN_USERNAME.equals(normalizedUsername) && ADMIN_PASSWORD.equals(password)) {
+        if (ADMIN_USERNAME.equals(normalizedUsername) && passwordMatches(password, ADMIN_PASSWORD_HASH)) {
             return remember(UserSession.Role.ADMIN, null, null, "Administrator");
         }
 
-        if (INSTRUCTOR_PASSWORD.equals(password)) {
+        if (passwordMatches(password, INSTRUCTOR_PASSWORD_HASH)) {
             Instructor instructor = instructorRepository.findByEmailIgnoreCase(normalizedUsername)
                     .orElseThrow(() -> unauthorized("Neplatne prihlasovaci udaje."));
             return remember(UserSession.Role.INSTRUCTOR, null, instructor.getId(), instructor.getName());
         }
 
-        if (STUDENT_PASSWORD.equals(password)) {
+        if (passwordMatches(password, STUDENT_PASSWORD_HASH)) {
             Student student = studentRepository.findByEmailIgnoreCase(normalizedUsername)
                     .orElseThrow(() -> unauthorized("Neplatne prihlasovaci udaje."));
             return remember(UserSession.Role.STUDENT, student.getId(), null, student.getName());
@@ -63,11 +69,7 @@ public class AuthSessionService {
         if (token == null || token.isBlank()) {
             throw unauthorized("Nejprve se prihlas.");
         }
-        UserSession session = sessions.get(token);
-        if (session == null) {
-            throw unauthorized("Prihlaseni vyprselo nebo je neplatne.");
-        }
-        return session;
+        return jwtTokenService.parse(token);
     }
 
     public UserSession requireAdmin(String token) {
@@ -125,8 +127,9 @@ public class AuthSessionService {
 
         Student student = studentRepository.findById(session.studentId())
                 .orElseThrow(() -> unauthorized("Studentsky ucet uz neexistuje."));
+        LocalDateTime now = LocalDateTime.now();
         List<Course> visibleCourses = courseRepository.findAll().stream()
-                .filter(course -> course.getStatus() == CourseStatus.PUBLISHED || course.hasStudent(student.getId()))
+                .filter(course -> course.isBookable(now) || course.hasStudent(student.getId()))
                 .toList();
         return new CourseService.ApplicationState(List.of(student), List.of(), visibleCourses);
     }
@@ -140,10 +143,12 @@ public class AuthSessionService {
     }
 
     private UserSession remember(UserSession.Role role, Long studentId, Long instructorId, String displayName) {
-        String token = UUID.randomUUID().toString();
-        UserSession session = new UserSession(token, role, studentId, instructorId, displayName);
-        sessions.put(token, session);
-        return session;
+        UserSession session = new UserSession("", role, studentId, instructorId, displayName);
+        return new UserSession(jwtTokenService.create(session), role, studentId, instructorId, displayName);
+    }
+
+    private boolean passwordMatches(String rawPassword, String passwordHash) {
+        return rawPassword != null && passwordEncoder.matches(rawPassword, passwordHash);
     }
 
     private ResponseStatusException unauthorized(String message) {

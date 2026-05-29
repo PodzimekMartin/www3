@@ -53,3 +53,32 @@ kubectl -n course-staging logs deployment/course-reservations-staging
 Hesla nejsou ulozena v repozitari. Soubor `k8s/base/secret.example.yml` je pouze prazdna sablona. Realne hodnoty se vytvari pres `kubectl create secret` nebo pres CI secrets.
 
 Docker Compose obsahuje jen lokalni vyvojove heslo pro izolovanou databazi, ne produkcni secret.
+
+## Aplikacni zabezpeceni
+
+Aplikace pouziva Spring Security jako hlavni bezpecnostni vrstvu. API je stateless, nepouziva serverove session a kazdy pozadavek na chranene endpointy musi obsahovat JWT token.
+
+Prihlaseni:
+
+- `POST /api/auth/login`
+- vstupem je uzivatelske jmeno a heslo
+- heslo se overuje pres `BCryptPasswordEncoder`
+- vystupem je podepsany JWT token
+
+Token se posila takto:
+
+```http
+Authorization: Bearer <token>
+```
+
+Role:
+
+- `ADMIN`
+- `INSTRUCTOR`
+- `STUDENT`
+
+Hrube rozdeleni pristupu je v `SecurityConfig`, kde jsou pravidla nad URL endpointy. Jemnejsi pravidla jsou v `AuthSessionService`, napr. vyucujici muze menit pouze svoje kurzy a student muze rusit pouze svuj zapis.
+
+JWT token zpracovava `JwtAuthenticationFilter`. Pokud je token platny, filtr vytvori Spring Security autentizaci s odpovidajici roli. Pokud token chybi, API vraci `401`. Pokud role nestaci, API vraci `403`.
+
+CSRF je vypnute zamerne, protoze aplikace nepouziva cookie session, ale Bearer token v hlavicce. CORS je omezeny na lokalni webove rozhrani a povolene HTTP metody.

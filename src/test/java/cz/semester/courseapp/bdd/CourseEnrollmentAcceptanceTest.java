@@ -22,8 +22,8 @@ class CourseEnrollmentAcceptanceTest {
         var course = courseService.createCourse("Acceptance Driven DevOps", 1);
         courseService.addSession(
                 course.getId(),
-                LocalDateTime.parse("2026-05-04T10:00:00"),
-                LocalDateTime.parse("2026-05-04T12:00:00"));
+                LocalDateTime.parse("2027-05-04T10:00:00"),
+                LocalDateTime.parse("2027-05-04T12:00:00"));
         courseService.publishCourse(course.getId());
 
         var firstEnrollment = courseService.enroll(course.getId(), first.getId());

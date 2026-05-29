@@ -41,6 +41,16 @@ class CourseDomainTest {
     }
 
     @Test
+    void finishedCourseCannotAcceptEnrollment() {
+        Course course = publishedCourse(1);
+        LocalDateTime afterSession = LocalDateTime.parse("2027-05-04T13:00:00");
+
+        assertThatThrownBy(() -> course.enroll(student(1L, "Ada"), afterSession))
+                .isInstanceOf(DomainException.class)
+                .hasMessageContaining("termin uz probehl");
+    }
+
+    @Test
     void courseCannotBePublishedWithoutSession() {
         Course course = new Course("Java", 1);
 
@@ -103,7 +113,7 @@ class CourseDomainTest {
 
     @Test
     void invalidSessionTimeIsRejected() {
-        LocalDateTime startsAt = LocalDateTime.parse("2026-05-04T10:00:00");
+        LocalDateTime startsAt = LocalDateTime.parse("2027-05-04T10:00:00");
 
         assertThatThrownBy(() -> new CourseSession(startsAt, startsAt.minusMinutes(1)))
                 .isInstanceOf(DomainException.class)
@@ -113,8 +123,8 @@ class CourseDomainTest {
     private Course publishedCourse(int capacity) {
         Course course = new Course("Java", capacity);
         course.addSession(new CourseSession(
-                LocalDateTime.parse("2026-05-04T10:00:00"),
-                LocalDateTime.parse("2026-05-04T12:00:00")));
+                LocalDateTime.parse("2027-05-04T10:00:00"),
+                LocalDateTime.parse("2027-05-04T12:00:00")));
         course.publish();
         return course;
     }

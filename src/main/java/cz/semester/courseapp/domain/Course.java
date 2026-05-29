@@ -12,6 +12,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -115,9 +116,31 @@ public class Course {
         session.assignCourse(this);
     }
 
+    public boolean isFinished(LocalDateTime now) {
+        return !sessions.isEmpty()
+                && sessions.stream().allMatch(session -> !session.getEndsAt().isAfter(now));
+    }
+
+    public boolean isBookable(LocalDateTime now) {
+        return status == CourseStatus.PUBLISHED
+                && sessions.stream().anyMatch(session -> session.getEndsAt().isAfter(now));
+    }
+
+    /**
+     * Registers a student into the course and applies the central enrollment rules.
+     * Published courses accept students up to their capacity; additional students are
+     * placed on the waitlist in registration order.
+     */
     public Enrollment enroll(Student student) {
+        return enroll(student, LocalDateTime.now());
+    }
+
+    public Enrollment enroll(Student student, LocalDateTime now) {
         if (status != CourseStatus.PUBLISHED) {
             throw new DomainException("Student se nemuze zapsat do nepublikovaneho kurzu.");
+        }
+        if (!isBookable(now)) {
+            throw new DomainException("Student se nemuze zapsat do kurzu, jehoz termin uz probehl.");
         }
         if (student.isBlocked()) {
             throw new DomainException("Blokovany student se nemuze zapsat do kurzu.");

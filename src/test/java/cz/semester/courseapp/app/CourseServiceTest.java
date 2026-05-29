@@ -36,8 +36,8 @@ class CourseServiceTest {
         Long courseId = courseService.createCourse("Spring Boot", 1).getId();
         courseService.addSession(
                 courseId,
-                LocalDateTime.parse("2026-05-04T10:00:00"),
-                LocalDateTime.parse("2026-05-04T12:00:00"));
+                LocalDateTime.parse("2027-05-04T10:00:00"),
+                LocalDateTime.parse("2027-05-04T12:00:00"));
         courseService.publishCourse(courseId);
 
         courseService.enroll(courseId, student.getId());
