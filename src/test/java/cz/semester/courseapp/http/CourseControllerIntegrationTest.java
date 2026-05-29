@@ -1,5 +1,6 @@
 package cz.semester.courseapp.http;
 
+import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -15,7 +16,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(properties = "app.seed-data=false")
+@SpringBootTest(properties = {
+        "app.seed-data=false",
+        "spring.jpa.hibernate.ddl-auto=create-drop"
+})
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class CourseControllerIntegrationTest {
@@ -61,14 +65,17 @@ class CourseControllerIntegrationTest {
 
     @Test
     void stateEndpointReturnsStudentsAndCourses() throws Exception {
-        createStudent("Katherine Johnson", "katherine-http@example.test");
-        createCourse("Algorithms", 3);
+        String suffix = Long.toString(System.nanoTime());
+        String email = "katherine-http-" + suffix + "@example.test";
+        String title = "Algorithms " + suffix;
+        createStudent("Katherine Johnson", email);
+        createCourse(title, 3);
 
         mockMvc.perform(get("/api/state")
                         .header(AUTH_HEADER, adminToken()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.students.length()").value(1))
-                .andExpect(jsonPath("$.courses.length()").value(1));
+                .andExpect(jsonPath("$.students[*].email").value(hasItem(email)))
+                .andExpect(jsonPath("$.courses[*].title").value(hasItem(title)));
     }
 
     @Test
