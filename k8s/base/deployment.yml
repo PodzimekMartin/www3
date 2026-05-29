@@ -22,7 +22,7 @@ spec:
         runAsNonRoot: true
       containers:
         - name: app
-          image: ghcr.io/podzimekmartin/coursereservations:1.0.0
+          image: ghcr.io/podzimekmartin/www3:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
